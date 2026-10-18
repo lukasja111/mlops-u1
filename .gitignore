@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+
+# raw data: `dvc add` writes data/raw/.gitignore itself (the .dvc pointer is committed instead of the bytes)
+# pipeline outputs are restored from the DVC cache
+data/processed/
+models/*.pkl
+
+# local MLflow state - must not appear: train.py refuses to run without MLFLOW_TRACKING_URI
+mlruns/
+mlflow.db
+mlartifacts/
+
+# DVC internals; .dvc/config is NOT ignored - the remote configuration lives in Git
+.dvc/cache/
+.dvc/tmp/
+
+# kept in Git on purpose: .dvc/config, dvc.lock, metrics.json, models/run_id.txt
+
+.env
+*.log
+data/raw/*.csv
