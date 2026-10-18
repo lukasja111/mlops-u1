@@ -1,6 +1,6 @@
 # Airbnb Superhost klasifikatorius — reikalavimai
 
-**Versija:** 1.0
+**Versija:** 1.1
 **Data:** 2026-10-19
 **Autoriai(-ius):** Lukas Jasiulionis (lukasja111)
 
@@ -42,13 +42,20 @@ aplink modelį (DVC, MLflow, Kubernetes), ne aukščiausia modelio kokybė.
 ## 3. Nefunkciniai reikalavimai
 | ID | Kategorija | Reikalavimas | Metrika/KPI |
 |---|---|---|---|
-| NFR-01 | Kokybė | Superhost klasės F1 testinėje imtyje | F1 ≥ 0,62 (`metrics.json` raktas `f1`). Nepasiekus — keičiami hiperparametrai |
-| NFR-02 | Kokybė | Modelis geresnis už „visada ne Superhost“ | accuracy ≥ 0,75 („visada ne“ — 0,744). Nepasiekus — keičiami hiperparametrai |
-| NFR-03 | Našumas | Mokymo trukmė CPU | `train` stage'as ≤ 2 min; matuojama `time dvc repro --force -s train` |
-| NFR-04 | Patikimumas | MLflow duomenys išlieka perkūrus Pod'us | 0 prarastų run'ų ir artefaktų po `kubectl delete pod -l app=mlflow` ir `-l app=postgres` |
-| NFR-05 | Saugumas | MLflow serveris nepasiekiamas iš tinklo | Klausosi tik `127.0.0.1:5000` (kind `listenAddress`); tikrinama `ss -ltn` |
-| NFR-06 | Saugumas | Jokių paslapčių Git repozitorijoje | 0 slaptažodžių / token'ų; Postgres prisijungimai tik K8s Secret; tikrinama `git grep -i password` |
-| NFR-07 | Privatumas | Jokių asmenį identifikuojančių duomenų | Duomenyse nėra šeimininkų vardų ar ID; žali duomenys ne Git (tik `data/raw.dvc`); tikrinama `git ls-files data/` |
+| NFR-01 | Kokybė | Superhost klasės F1 testinėje imtyje | F1 ≥ 0,62 (`metrics.json` raktas `f1`). Nepasiekus — keičiami hiperparametrai. Išmatuota: 0,6058 / 0,6465 / 0,7197 (`max_depth` 5 / 10 / 15); tenkina 10 ir 15, `params.yaml` dabar 15 |
+| NFR-02 | Kokybė | Modelis geresnis už „visada ne Superhost“ | accuracy ≥ 0,75 („visada ne“ — 0,744). Nepasiekus — keičiami hiperparametrai. Išmatuota: 0,7184 / 0,7616 / 0,8279 (`max_depth` 5 / 10 / 15); tenkina 10 ir 15 |
+| NFR-03 | Našumas | Mokymo trukmė CPU | `train` stage'as ≤ 2 min; matuojama `time dvc repro --force -s train`. Išmatuota: visas `dvc repro --force` (3 stage'ai) 14 s; MLflow run'o trukmė (train + evaluate) 7–9 s |
+| NFR-04 | Patikimumas | MLflow duomenys išlieka perkūrus Pod'us | 0 prarastų run'ų ir artefaktų po `kubectl delete pod -l app=mlflow` ir `-l app=postgres`. Išmatuota: abu Pod'ai perkurti (pirma Postgres, po to MLflow), RESTARTS 0; išliko 4/4 run'ai ir 4/4 modeliai, `rf-n100-d15` modelis įkeltas iš serverio (F1 0,7197) |
+| NFR-05 | Saugumas | MLflow serveris nepasiekiamas iš tinklo | Klausosi tik `127.0.0.1:5000` (kind `listenAddress`); tikrinama `ss -ltn`. Išmatuota: `ss -ltn` rodo tik `127.0.0.1:5000` |
+| NFR-06 | Saugumas | Jokių paslapčių Git repozitorijoje | 0 slaptažodžių / token'ų; Postgres prisijungimai tik K8s Secret; tikrinama `git grep -i password`. Išmatuota: 0; randamos tik nuorodos į Secret raktus |
+| NFR-07 | Privatumas | Jokių asmenį identifikuojančių duomenų | Duomenyse nėra šeimininkų vardų ar ID; žali duomenys ne Git (tik `data/raw.dvc`); tikrinama `git ls-files data/`. Išmatuota: tik `data/.gitignore` ir `data/raw.dvc` |
+
+### 3.1 Eksperimentų sekimo ir atkartojamumo NFR (v1.1)
+| ID | Kategorija | Reikalavimas | Metrika/KPI |
+|---|---|---|---|
+| NFR-08 | Atkartojamumas | Bet kuris istorinis run'as atkuriamas `python reproduce.py <run_id>` | ≤ 2 min (duomenys jau DVC cache), \|Δaccuracy\| ≤ 0,005 ir \|Δf1\| ≤ 0,005; matuojama `time python reproduce.py <run_id>`. Išmatuota: 15 s, Δaccuracy = 0,0000, Δf1 = 0,0000 (run'as `7573a7ca` atkurtas kaip `2bece1a9` su tag'u `reproduces`) |
+| NFR-09 | Atsekamumas | Kiekvienas run'as turi `git_commit` ir `dvc_raw_md5` tag'us | 100 % run'ų; tikrinama MLflow paieška. Išmatuota: 4/4 run'ai (3 eksperimentai ir reprodukcija) |
+| NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5` tag'as, 100 % run'ų. Išmatuota: `a2b156db…` sutampa 4/4 |
 
 ## 4. KPI
 - **Modelio:** F1 (Superhost) — pagrindinė; accuracy lyginama su 0,744 („visada ne“); precision ir recall — informacinės.
@@ -77,3 +84,4 @@ aplink modelį (DVC, MLflow, Kubernetes), ne aukščiausia modelio kokybė.
 | Versija | Data | Pakeitimai |
 |---|---|---|
 | 1.0 | 2026-10-19 | Pradinė versija: apimtis, FR-01..05, NFR-01..07 |
+| 1.1 | 2026-10-19 | NFR-08..10 (atkartojamumas, atsekamumas, duomenų versija); NFR-01..07 išmatuotos reikšmės iš 3 klasterio run'ų |
