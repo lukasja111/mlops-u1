@@ -1,0 +1,30 @@
+FROM python:3.12.14-slim-trixie AS base
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM base AS builder
+WORKDIR /build
+COPY requirements-train.txt ./
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --no-compile -r requirements-train.txt
+
+FROM base AS runtime
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.source="https://github.com/lukasja111/mlops-u1" \
+      org.opencontainers.image.revision="$GIT_COMMIT"
+ENV GIT_COMMIT=$GIT_COMMIT \
+    GIT_PYTHON_REFRESH=quiet \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+COPY src/train.py ./src/train.py
+COPY params.yaml ./
+COPY data/processed/ ./data/processed/
+COPY data/raw.dvc ./data/
+RUN useradd --create-home --uid 1000 mluser \
+    && mkdir -p /app/models && chown mluser:mluser /app/models
+USER mluser
+CMD ["python", "src/train.py"]
