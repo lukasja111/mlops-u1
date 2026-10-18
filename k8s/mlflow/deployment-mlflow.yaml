@@ -27,7 +27,7 @@ spec:
             - --artifacts-destination=/mlartifacts
             - --host=0.0.0.0
             - --port=5000
-            - --allowed-hosts=localhost:*,127.0.0.1:*,mlflow:5000,mlflow.mlops-u1.svc:5000
+            - --allowed-hosts=localhost:*,127.0.0.1:*,host.docker.internal:*,mlflow:5000,mlflow.mlops-u1.svc:5000
           ports:
             - containerPort: 5000
           env:

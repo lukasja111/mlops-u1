@@ -74,8 +74,7 @@ kubectl -n mlops-u1 rollout status deploy/postgres --timeout=180s
 kubectl -n mlops-u1 rollout status deploy/mlflow --timeout=300s
 until curl -sf http://127.0.0.1:5000/health; do sleep 2; done; echo
 
-# 4. Duomenys: autoriaus kompiuteryje iš DVC remote, kitur žr. „Duomenys be DVC remote“
-dvc pull
+# 4. Duomenys: atlikite bloką „Duomenys be DVC remote“ žemiau (autoriaus kompiuteryje vietoje jo: dvc pull)
 
 # 5. Pipeline'as: run'as klasterio MLflow
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
@@ -84,14 +83,14 @@ git commit -am "exp: pirmas run'as savame klasteryje"
 ```
 
 - 2 žingsnis: slaptažodis šešioliktainis, todėl jo nereikia koduoti MLflow DB URI.
-- 5 žingsnis: naujame klasteryje MLflow tuščias, o po `dvc pull` visos išvestys sutampa su `dvc.lock`, todėl be
+- 5 žingsnis: naujame klasteryje MLflow tuščias, o po `dvc pull` (autoriaus kompiuteryje) visos išvestys sutampa su `dvc.lock`, todėl be
   `--force` DVC viską praleistų ir run'o nebūtų. Commit'as reikalingas, nes `dvc.lock` ir `models/run_id.txt` dabar
   rodo į jūsų run'ą, o `reproduce.py` reikalauja švaraus darbo medžio.
 - `train.py` be `MLFLOW_TRACKING_URI` neveikia: run'ai log'inami tik į klasterio MLflow, ne į vietinį `mlruns/`.
 
 ### Duomenys be DVC remote
 
-`localremote` yra autoriaus kompiuterio katalogas, todėl kitur `dvc pull` baigiasi klaida. Vietoje 4 žingsnio
+`localremote` yra autoriaus kompiuterio katalogas, todėl kitur `dvc pull` baigiasi klaida. 4 žingsnyje
 atsisiųskite 20 CSV iš fiksuotos HF revizijos ir patikrinkite, kad jie sutampa su `data/raw.dvc`:
 
 ```bash
@@ -142,11 +141,11 @@ pakeitimą, failai skiriasi nuo autoriaus (md5 `a2b156db54022d6fe3c950258a5d5c9a
 
 ```bash
 # params.yaml: pakeiskite hiperparametrą, pvz. train.max_depth 15 -> 10
-dvc status                             # train: changed params
+dvc status                             # train: changed deps, params.yaml: modified
 dvc repro                              # persileidžia tik train ir evaluate (prepare nuo params nepriklauso)
 dvc params diff && dvc metrics diff
 git commit -am "exp: max_depth 10"
-dvc push
+dvc push                               # tik su savu remote, žr. „Duomenys be DVC remote“
 ```
 
 - `dvc.lock` pasikeičia: `train` params reikšmė ir `models/model.pkl`, `models/run_id.txt`, `metrics.json` md5;
@@ -162,6 +161,8 @@ dvc push
 git status                             # švarus darbo medis, esate šakoje (main)
 time python reproduce.py <run_id>      # ≤ 2 min, |Δaccuracy| ≤ 0,005, |Δf1| ≤ 0,005
 ```
+
+`<run_id>`: 5 žingsnio išvestyje (`run_id=…`) arba MLflow UI; `models/run_id.txt` rodo tik paskutinį run'ą.
 
 `reproduce.py`: paima run'ą iš MLflow → `git checkout <git_commit>` → `dvc checkout` žalių duomenų → run'o
 hiperparametrai į `params.yaml` → `dvc repro --force` → palygina metrikas, naujam run'ui uždeda tag'ą
@@ -191,6 +192,8 @@ bash scripts/publish.sh
 - Vaizdas kopijuoja `data/processed/`, todėl prieš `docker build` reikia `dvc pull` arba `dvc repro`.
 - Tag'as `sha-<8 simboliai>` sutampa su MLflow `git_commit` tag'u ir vaizdo `org.opencontainers.image.revision`
   žyme; `latest` nenaudojamas. Kitas commit'as duoda kitą tag'ą, todėl Trivy komandos kartojamos.
+- Trivy komandos perrašo commit'intus `docs/trivy-train.json` ir `docs/sbom-train.json`: naujus commit'inkite arba
+  atkurkite `git checkout -- docs/` (prieš `reproduce.py`, nes jis daro `git checkout --force`).
 - `--network host` veikia Linux'e; kitur `-e MLFLOW_TRACKING_URI=http://host.docker.internal:5000`.
 - `scripts/publish.sh` (reikia `gh` ir `trivy`): CRITICAL vartas, prisijungimas prie GHCR su `gh` token'u, push ir
   digest. Naujas GHCR paketas būna privatus: viešu jį padaro GitHub → Packages → Package settings.
