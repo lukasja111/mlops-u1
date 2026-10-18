@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train
+  namespace: mlops-u1
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: train
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: train
+          image: ghcr.io/lukasja111/mlops-u1/train:sha-0a26641f
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: training-config
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {cpu: "2", memory: 1Gi}
