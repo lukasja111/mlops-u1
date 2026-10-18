@@ -1,6 +1,6 @@
 # Airbnb Superhost klasifikatorius — reikalavimai
 
-**Versija:** 1.1
+**Versija:** 1.2
 **Data:** 2026-10-19
 **Autoriai(-ius):** Lukas Jasiulionis (lukasja111)
 
@@ -57,6 +57,15 @@ aplink modelį (DVC, MLflow, Kubernetes), ne aukščiausia modelio kokybė.
 | NFR-09 | Atsekamumas | Kiekvienas run'as turi `git_commit` ir `dvc_raw_md5` tag'us | 100 % run'ų; tikrinama MLflow paieška. Išmatuota: 4/4 run'ai (3 eksperimentai ir reprodukcija) |
 | NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5` tag'as, 100 % run'ų. Išmatuota: `a2b156db…` sutampa 4/4 |
 
+### 3.2 Konteinerizacijos NFR (v1.2)
+NFR-12 (kurso pavyzdžio ONNX vaizdo parengtis) šiam projektui netaikomas; numeracija išlaikyta pagal kursą.
+
+| ID | Kategorija | Reikalavimas | Metrika/KPI |
+|---|---|---|---|
+| NFR-11 | Dydis | Mokymo vaizdas kuo mažesnis | rootfs ≤ 500 MB (`du --apparent-size`, MB = 1 000 000 B); `docs/image-sizes.md`. Išmatuota: 449,63 MB rootfs, Docker .Size 464,85 MB (`sha-0a26641f`) |
+| NFR-13 | Saugumas | 0 CRITICAL pažeidžiamumų prieš publikavimą | `trivy image --scanners vuln --severity CRITICAL --exit-code 1` grąžina 0; HIGH radiniai analizuojami `docs/security-scan.md`. Išmatuota: CRITICAL 0, HIGH 44 (8 Debian CVE, pataisų dar nėra), vartas exit 0 |
+| NFR-14 | Saugumas | Konteineris vykdomas ne root | UID ≠ 0; tikrinama `docker run --rm --entrypoint id <vaizdas> -u`. Išmatuota: uid 1000 (`mluser`) |
+
 ## 4. KPI
 - **Modelio:** F1 (Superhost) — pagrindinė; accuracy lyginama su 0,744 („visada ne“); precision ir recall — informacinės.
 - **Sistemos:** mokymo trukmė, MLflow pasiekiamumas demonstracijos metu, run'ų išlikimas perkūrus Pod'us.
@@ -85,3 +94,4 @@ aplink modelį (DVC, MLflow, Kubernetes), ne aukščiausia modelio kokybė.
 |---|---|---|
 | 1.0 | 2026-10-19 | Pradinė versija: apimtis, FR-01..05, NFR-01..07 |
 | 1.1 | 2026-10-19 | NFR-08..10 (atkartojamumas, atsekamumas, duomenų versija); NFR-01..07 išmatuotos reikšmės iš 3 klasterio run'ų |
+| 1.2 | 2026-10-19 | NFR-11, NFR-13, NFR-14 (konteinerizacija) su išmatuotomis reikšmėmis |
