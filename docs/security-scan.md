@@ -10,21 +10,16 @@
 | Pilna ataskaita | [`trivy-train.json`](trivy-train.json) |
 | SBOM | [`sbom-train.json`](sbom-train.json) (SPDX 2.3, 146 paketai) |
 
-```bash
-trivy image --scanners vuln --severity HIGH,CRITICAL --format json --output docs/trivy-train.json <vaizdas>
-trivy image --scanners vuln --severity CRITICAL --exit-code 1 <vaizdas>
-trivy image -f spdx-json -o docs/sbom-train.json <vaizdas>
-```
-
-Antra komanda yra vartas: ji kartojama ir `scripts/publish.sh` pradžioje, todėl vaizdas su CRITICAL radiniu
-nepublikuojamas. Trečia sukuria SBOM, visų vaizdo paketų sąrašą, pagal kurį vėliau galima tikrinti naujus CVE be
-vaizdo atsisiuntimo.
+Komandos yra `docs/runbook.md` („Docker vaizdas“). CRITICAL vartas (`--severity CRITICAL --exit-code 1`) kartojamas ir
+`scripts/publish.sh` pradžioje, todėl vaizdas su CRITICAL radiniu nepublikuojamas. SBOM yra visų vaizdo paketų sąrašas,
+pagal kurį vėliau galima tikrinti naujus CVE be vaizdo atsisiuntimo.
 
 ## Rezultatas
 
-- **CRITICAL: 0. HIGH: 44** (8 unikalūs CVE, visi Debian paketuose). Python paketuose radinių nėra.
-- **Vartas**: exit code **0**, publikuoti galima.
-- Nė vienam HIGH dar nėra pataisytos Debian versijos.
+- **CRITICAL: 0. HIGH: 44** (8 unikalūs CVE, visi Debian paketuose; nė vienam dar nėra pataisytos versijos). Python
+  paketuose radinių nėra.
+- **Vartas:** exit code **0**, publikuoti galima.
+- Konteineris veikia ne root teisėmis: `docker run --rm --entrypoint id <vaizdas> -u` grąžina `1000`.
 
 ## HIGH radinių analizė
 
@@ -36,12 +31,6 @@ vaizdo atsisiuntimo.
 | CVE-2026-16742 | `libsystemd0`, `libudev1` | nėra | Pažeidžiamas `systemd-homed`, kurio vaizde nėra (yra tik bibliotekos) | Priimta |
 | CVE-2026-9538 | `perl-base` (Archive::Tar) | nėra (Debian: fix deferred) | DoS apdorojant tar archyvus; vaizdas jų neapdoroja | Priimta |
 
-## Python paketai
-
-Pilnas `mlflow` 3.15.2 vaizde pridėtų du HIGH: CVE-2026-69247 (`cryptography` 49.0.0, nes `mlflow` riboja
-`cryptography<50`; pataisyta 50.0.0) ir CVE-2026-71211 (`mlflow` 3.15.2, AI Gateway serverio funkcija). Vaizdas diegia
-`mlflow-skinny`, todėl `cryptography` patenka per databricks-sdk → google-auth kaip 50.0.2 (pataisyta), o `mlflow`
-serverio paketo vaizde nėra. Kurso fiksuotas `mlflow==3.15.2` lieka kūrėjo aplinkoje ir klasterio serveryje, kurie
-pasiekiami tik per `127.0.0.1`.
-
-Konteineris veikia ne root teisėmis: `docker run --rm --entrypoint id <vaizdas> -u` grąžina `1000`.
+Pilnas `mlflow` 3.15.2 vaizde pridėtų du Python HIGH: CVE-2026-69247 (`cryptography` 49.0.0) ir CVE-2026-71211 (`mlflow`
+AI Gateway serverio funkcija). Vaizdas diegia `mlflow-skinny`, todėl `cryptography` yra 50.0.2 (pataisyta), o serverio
+paketo nėra. Pilnas `mlflow==3.15.2` lieka kūrėjo aplinkoje ir klasterio serveryje, pasiekiamuose tik per `127.0.0.1`.
