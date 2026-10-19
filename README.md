@@ -8,63 +8,23 @@ Docker vaizdas GHCR ir mokymas kaip Kubernetes Job (E2).
 - **Tag:** `u1-final`
 - **Autorius:** Lukas Jasiulionis (lukasja111)
 - **Vaizdas:** `ghcr.io/lukasja111/mlops-u1/train:sha-71249941` (viešas; digest `docs/image-sizes.md`)
-- **Kaip paleisti:** `kind create cluster` → Postgres ir MLflow klasteryje → duomenys (`dvc pull` arba HF) →
-  `dvc repro --force`; rezultatai MLflow UI http://127.0.0.1:5000 (žr. [Paleidimas nuo nulio](#paleidimas-nuo-nulio))
-
-## Rezultatai
-
-| Run'as | `max_depth` | accuracy | F1 (Superhost) |
-|---|---:|---:|---:|
-| `rf-n100-d5` | 5 | 0,7121 | 0,5947 |
-| `rf-n100-d10` | 10 | 0,7440 | 0,6181 |
-| `rf-n100-d15` | 15 | 0,7764 | 0,6298 |
-
-KPI (`docs/requirements.md`): F1 ≥ 0,62 ir accuracy ≥ 0,75 („visada ne Superhost“ duoda 0,744). Tenkina tik gylis 15;
-`params.yaml` dabar 15. Reprodukcija: 20 s, Δ = 0.
-
-**Duomenų nutekėjimas (rastas ir ištaisytas).** Tas pats skelbimas yra ir darbo dienų, ir savaitgalio faile. Pirmoji
-versija skaidė eilutes atsitiktinai, todėl 64,5 % testinių eilučių turėjo dvynį (tas pats miestas, `lat`, `lng`)
-mokymo imtyje ir metrikos buvo išpūstos: gylio 15 F1 0,7197, nors nematytiems skelbimams tik 0,63. Dabar
-`src/data_prep.py` skaido pagal vietą: visos tos pačios (`city`, `lat`, `lng`) eilutės patenka į tą pačią pusę
-(`StratifiedGroupKFold`, 5 dalys, testui viena, ~20 %; Superhost dalis abiejose imtyse 25,6 %). Bendrų vietų 0
-(NFR-01a). Seni run'ai liko MLflow palyginimui su tag'u `split=random`.
-
-## Struktūra
-
-```
-src/                   data_prep.py, train.py, eval.py
-reproduce.py           istorinio run'o atkūrimas pagal run_id
-dvc.yaml, params.yaml  pipeline'as ir hiperparametrai; dvc.lock, metrics.json commit'inami
-data/raw.dvc           20 CSV rodyklė (patys duomenys DVC remote, ne Git)
-models/run_id.txt      paskutinio mokymo MLflow run_id
-docker/Dockerfile.train, .dockerignore, requirements-train.txt   mokymo vaizdas
-k8s/kind-config.yaml   klasterio konfigūracija; k8s/namespace.yaml
-k8s/mlflow/            Postgres ir MLflow: PVC, Deployment, Service
-k8s/jobs/              E2: ConfigMap (MLflow adresas, hiperparametrai) ir mokymo Job
-scripts/publish.sh     vaizdo publikavimas į GHCR
-docs/                  requirements.md, architecture.md, image-sizes.md, security-scan.md, u1-report.md,
-                       trivy-train.json, sbom-train.json
-```
+- **Kaip paleisti:** „Paleidimas nuo nulio“ žemiau; rezultatai MLflow UI http://127.0.0.1:5000
+- **Dokumentai:** `docs/requirements.md` (reikalavimai, KPI ir išmatuotos reikšmės), `docs/u1-report.md` (ataskaita),
+  `docs/architecture.md`, `docs/runbook.md` (naujas eksperimentas, reprodukcija, Docker vaizdas, Job'as, problemų
+  sprendimas)
 
 ## Reikalavimai
 
-Docker, [kind](https://kind.sigs.k8s.io/) ≥ 0.31, kubectl, Python 3.12, apie 4 GB laisvos RAM. Vaizdo skenavimui ir
-publikavimui: [Trivy](https://trivy.dev/) ir [gh](https://cli.github.com/) (`gh auth login --scopes write:packages`).
-Išbandyta su: Docker 29.8.1, kind 0.31.0, kubectl 1.36.3, Python 3.12.14, DVC 3.67.1, Trivy 0.72.0, gh 2.102.0 (Linux).
-
-```bash
-python3.12 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
-```
-
-`requirements-train.txt`: mokymo priklausomybės (jas diegia ir Docker vaizdas, su `mlflow-skinny`);
-`requirements.txt`: plius pilnas `mlflow`; `requirements-dev.txt`: plius DVC. Tiesioginės priklausomybės fiksuotos `==`.
-
-Visos komandos vykdomos repo šaknyje, viename terminale su aktyvuotu `.venv`. Naujame terminale:
-`. .venv/bin/activate && export MLFLOW_TRACKING_URI=http://127.0.0.1:5000`.
+Docker, [kind](https://kind.sigs.k8s.io/) ≥ 0.31, kubectl, Python 3.12, apie 4 GB laisvos RAM. Išbandyta su: Docker
+29.8.1, kind 0.31.0, kubectl 1.36.3, Python 3.12.14, DVC 3.67.1 (Linux).
 
 ## Paleidimas nuo nulio
 
 ```bash
+# 0. Repo ir Python aplinka; visos komandos vykdomos repo šaknyje, viename terminale
+git clone https://github.com/lukasja111/mlops-u1.git && cd mlops-u1
+python3.12 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
+
 # 1. Klasteris (kind sukuria kontekstą kind-mlops-u1 ir į jį persijungia)
 kind create cluster --config k8s/kind-config.yaml
 
@@ -82,25 +42,7 @@ kubectl -n mlops-u1 rollout status deploy/postgres --timeout=180s
 kubectl -n mlops-u1 rollout status deploy/mlflow --timeout=300s
 until curl -sf http://127.0.0.1:5000/health; do sleep 2; done; echo
 
-# 4. Duomenys: atlikite bloką „Duomenys be DVC remote“ žemiau (autoriaus kompiuteryje vietoje jo: dvc pull)
-
-# 5. Pipeline'as: run'as klasterio MLflow
-export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
-dvc repro --force
-git commit -am "exp: pirmas run'as savame klasteryje"
-```
-
-- 5 žingsnis: naujame klasteryje MLflow tuščias, o po `dvc pull` (autoriaus kompiuteryje) visos išvestys sutampa su `dvc.lock`, todėl be
-  `--force` DVC viską praleistų ir run'o nebūtų. Commit'as reikalingas, nes `dvc.lock` ir `models/run_id.txt` dabar
-  rodo į jūsų run'ą, o `reproduce.py` reikalauja švaraus darbo medžio.
-- `train.py` be `MLFLOW_TRACKING_URI` neveikia: run'ai log'inami tik į klasterio MLflow, ne į vietinį `mlruns/`.
-
-### Duomenys be DVC remote
-
-`localremote` yra autoriaus kompiuterio katalogas, todėl kitur `dvc pull` baigiasi klaida. 4 žingsnyje
-atsisiųskite 20 CSV iš fiksuotos HF revizijos ir patikrinkite, kad jie sutampa su `data/raw.dvc`:
-
-```bash
+# 4. Duomenys: 20 CSV iš fiksuotos HF revizijos ir patikra, kad jie sutampa su data/raw.dvc
 mkdir -p data/raw
 for c in amsterdam athens barcelona berlin budapest lisbon london paris rome vienna; do
   for d in weekdays weekends; do
@@ -110,11 +52,18 @@ for c in amsterdam athens barcelona berlin budapest lisbon london paris rome vie
 done
 dvc commit -f data/raw.dvc
 git diff --exit-code data/raw.dvc && echo "duomenys sutampa"
+
+# 5. Pipeline'as: run'as klasterio MLflow
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+dvc repro --force
+git commit -am "exp: pirmas run'as savame klasteryje"
 ```
 
-`dvc commit` suskaičiuoja katalogo md5 ir įdeda failus į DVC cache (jo reikia `reproduce.py`). Jei `git diff` rodo
-pakeitimą, failai skiriasi nuo autoriaus (md5 `a2b156db54022d6fe3c950258a5d5c9a.dir`). Toliau tęskite 5 žingsniu.
-`dvc push` (žr. „Naujas eksperimentas“) veiks tik su savu remote: `dvc remote modify --local localremote url /jusu/katalogas`.
+- 4 žingsnis: autoriaus kompiuteryje vietoje jo užtenka `dvc pull`; kitur `dvc pull` neveikia (žr. `docs/runbook.md`).
+- 5 žingsnis: `--force`, nes po `dvc pull` visos išvestys sutampa su `dvc.lock` ir be jo DVC viską praleistų, o naujame
+  klasteryje MLflow tuščias. Commit'as reikalingas, nes `reproduce.py` reikalauja švaraus darbo medžio.
+- Naujame terminale: `. .venv/bin/activate && export MLFLOW_TRACKING_URI=http://127.0.0.1:5000` (be jo `train.py`
+  neveikia: run'ai log'inami tik į klasterio MLflow).
 
 ## Portai
 
@@ -123,92 +72,32 @@ pakeitimą, failai skiriasi nuo autoriaus (md5 `a2b156db54022d6fe3c950258a5d5c9a
 | MLflow UI / API | http://127.0.0.1:5000 → kind NodePort 30500 → Service `mlflow:5000` |
 | Postgres | tik klasterio viduje: `postgres:5432` |
 
-- Jei NodePort neveikia: `kubectl -n mlops-u1 port-forward svc/mlflow 5050:5000` → http://127.0.0.1:5050 (tada ir
-  `export MLFLOW_TRACKING_URI=http://127.0.0.1:5050`).
-- Kompiuteris be naršyklės (SSH): `ssh -L 5000:localhost:5000 <host>` ir naršyklėje http://localhost:5000.
+Jei NodePort neveikia: `kubectl -n mlops-u1 port-forward svc/mlflow 5050:5000` → http://127.0.0.1:5050 (tada ir
+`export MLFLOW_TRACKING_URI=http://127.0.0.1:5050`). Kompiuteris be naršyklės: `ssh -L 5000:localhost:5000 <host>`.
 
 ## Prisijungimai
 
 - **Postgres:** naudotojas ir slaptažodis tik Secret `postgres-credentials` (2 žingsnis). Peržiūrėti:
-  `kubectl -n mlops-u1 get secret postgres-credentials -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`.
-  MLflow slaptažodį gauna aplinkos kintamuoju `PGPASSWORD` (jį skaito PostgreSQL klientas), o `--backend-store-uri`
-  adrese slaptažodžio nėra, todėl jo nerodo nei `ps`, nei `kubectl describe` (ten matyti tik nuoroda į Secret).
+  `kubectl -n mlops-u1 get secret postgres-credentials -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`. MLflow
+  slaptažodį gauna aplinkos kintamuoju `PGPASSWORD`, todėl jo nerodo nei `ps`, nei `kubectl describe`.
 - **MLflow:** be autentifikacijos (E1 nedaromas), todėl kind klausosi tik `127.0.0.1`.
 
 ## Kur žiūrėti rezultatus
 
-- MLflow UI → eksperimentas `airbnb-superhost`: run'ai `rf-n<n_estimators>-d<max_depth>`; metrikos `f1` (Superhost
-  klasės, pagrindinė), `accuracy` ir `eval/*` (iš `eval.py`); `eval.py` artefaktai `eval/feature_importances.json`
-  (požymių svarba) ir `eval/confusion_matrix.json` (klaidų matrica); tag'ai `git_commit`, `dvc_raw_md5`, seniems
-  run'ams `split=random`; modelis MLflow 3 skiltyje „Logged models“ (susietas su run'u).
-- `dvc metrics show`: dabartinės metrikos; `dvc metrics diff <commit>`, `dvc params diff <commit>`: palyginimas su
-  ankstesniu eksperimentu.
-- `docs/image-sizes.md`, `docs/security-scan.md`: vaizdo dydis ir Trivy rezultatai.
-
-## Naujas eksperimentas
-
-```bash
-# params.yaml: pakeiskite hiperparametrą, pvz. train.max_depth 15 -> 10
-dvc status                             # train: changed deps, params.yaml: modified
-dvc repro                              # persileidžia tik train ir evaluate (prepare nuo params nepriklauso)
-dvc params diff && dvc metrics diff
-git commit -am "exp: max_depth 10"
-dvc push                               # tik su savu remote, žr. „Duomenys be DVC remote“
-```
-
-- `dvc.lock` pasikeičia: `train` params reikšmė ir `models/model.pkl`, `models/run_id.txt`, `metrics.json` md5;
-  `prepare` įrašas lieka toks pat.
-- Antras `dvc repro` be pakeitimų nieko neperskaičiuoja (`didn't change, skipping`).
-- **Kodo pakeitimus (`src/`) commit'inkite prieš `dvc repro`:** run'o `git_commit` tag'as yra HEAD mokymo metu, o
-  `reproduce.py` atkuria būtent tą commit'ą. Keičiant tik `params.yaml` iš anksto commit'inti nereikia: `reproduce.py`
-  hiperparametrus ima iš run'o.
+- MLflow UI → eksperimentas `airbnb-superhost`: run'ai `rf-n<n_estimators>-d<max_depth>`, metrikos `f1` (pagrindinė),
+  `accuracy` ir `eval/*`, artefaktai `eval/feature_importances.json` ir `eval/confusion_matrix.json`, tag'ai
+  `git_commit` ir `dvc_raw_md5`. Seni run'ai (prieš nutekėjimo taisymą) pažymėti `split=random`.
+- `dvc metrics show`; palyginimas su ankstesniu eksperimentu: `dvc metrics diff <commit>`, `dvc params diff <commit>`.
+- KPI ir išmatuotos reikšmės `docs/requirements.md`; vaizdo dydis ir Trivy `docs/image-sizes.md`,
+  `docs/security-scan.md`.
 
 ## Reprodukcija
 
 ```bash
-git status                             # švarus darbo medis, esate šakoje (main)
-time python reproduce.py <run_id>      # ≤ 2 min, |Δaccuracy| ≤ 0,005, |Δf1| ≤ 0,005
+time python reproduce.py <run_id>      # švarus darbo medis; ≤ 2 min, |Δaccuracy| ir |Δf1| ≤ 0,005
 ```
 
-`<run_id>`: 5 žingsnio išvestyje (`run_id=…`) arba MLflow UI; `models/run_id.txt` rodo tik paskutinį run'ą.
-
-`reproduce.py`: paima run'ą iš MLflow → `git checkout <git_commit>` → `dvc checkout` žalių duomenų → run'o
-hiperparametrai į `params.yaml` → `dvc repro --force` → palygina metrikas, naujam run'ui uždeda tag'ą
-`reproduces=<run_id>` → grąžina repo į pradinę šaką. Pavyzdys (`rf-n100-d5`):
-
-```
-accuracy: original=0.7121 reproduced=0.7121 delta=0.0000
-f1: original=0.5947 reproduced=0.5947 delta=0.0000
-REPRODUCED in 20s -> new run 4fbc102c1ee841c181489d5ba145deca
-```
-
-Naujame klasteryje atkurkite savo run'ą: autoriaus run'ų jame nėra.
-
-## Docker vaizdas
-
-```bash
-SHA=$(git rev-parse --short=8 HEAD)
-docker build -f docker/Dockerfile.train --build-arg GIT_COMMIT=$SHA -t mlops-u1/train:sha-$SHA .
-docker run --rm --network host -e MLFLOW_TRACKING_URI=http://127.0.0.1:5000 mlops-u1/train:sha-$SHA
-
-trivy image --scanners vuln --severity HIGH,CRITICAL --format json --output docs/trivy-train.json mlops-u1/train:sha-$SHA
-trivy image --scanners vuln --severity CRITICAL --exit-code 1 mlops-u1/train:sha-$SHA
-trivy image -f spdx-json -o docs/sbom-train.json mlops-u1/train:sha-$SHA
-bash scripts/publish.sh
-```
-
-- Vaizdas kopijuoja `data/processed/`, todėl prieš `docker build` reikia `dvc pull` arba `dvc repro`.
-- Tag'as `sha-<8 simboliai>` sutampa su MLflow `git_commit` tag'u ir vaizdo `org.opencontainers.image.revision`
-  žyme; `latest` nenaudojamas. Kitas commit'as duoda kitą tag'ą, todėl Trivy komandos kartojamos.
-- Trivy komandos perrašo commit'intus `docs/trivy-train.json` ir `docs/sbom-train.json`: naujus commit'inkite arba
-  atkurkite `git checkout -- docs/` (prieš `reproduce.py`, nes jis daro `git checkout --force`).
-- `--network host` veikia Linux'e; kitur `-e MLFLOW_TRACKING_URI=http://host.docker.internal:5000`.
-- `scripts/publish.sh` (reikia `gh` ir `trivy`): CRITICAL vartas, prisijungimas prie GHCR su `gh` token'u, push ir
-  digest. Naujas GHCR paketas būna privatus: viešu jį padaro GitHub → Packages → Package settings.
-- Publikuota: `ghcr.io/lukasja111/mlops-u1/train:sha-71249941`, digest
-  `sha256:14ef4686875870348bc74afe4609db8e497fd6e34429749b66e95b6c45c23ab3`; rootfs 449,63 MB; Trivy CRITICAL 0 /
-  HIGH 44 (visi Debian, pataisų dar nėra); vykdomas kaip uid 1000. Išsamiau `docs/image-sizes.md`,
-  `docs/security-scan.md`.
+`<run_id>` yra 5 žingsnio išvestyje arba MLflow UI. Kaip veikia: `docs/runbook.md`.
 
 ## E2: mokymas kaip Kubernetes Job
 
@@ -218,37 +107,7 @@ kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
 kubectl -n mlops-u1 logs job/train
 ```
 
-- Job'as paleidžia viešą GHCR vaizdą `sha-71249941`, todėl nieko kurti ar įkelti į kind nereikia. Tag'as yra
-  commit'as, iš kurio vaizdas sukurtas, o ne dabartinis HEAD: manifestas negali nurodyti commit'o, kuriame pats
-  įrašytas. Naujam vaizdui: sukurti ir publikuoti (žr. „Docker vaizdas“), tada pakeisti `image:`
-  `k8s/jobs/job-train.yaml`.
-- MLflow pasiekiamas per `http://mlflow:5000` (ConfigMap); todėl MLflow paleistas su `--allowed-hosts`, kitaip
-  atsakytų `403 Invalid Host header`.
-- Hiperparametrai `N_ESTIMATORS` ir `MAX_DEPTH` yra ConfigMap `training-config`; Job'as juos perduoda `train.py`
-  argumentais. ConfigMap skaitomas paleidžiant Pod'ą, todėl pakeitimas galioja kitam Job'ui:
-
-  ```bash
-  sed -i 's/MAX_DEPTH: "15"/MAX_DEPTH: "10"/' k8s/jobs/configmap-training.yaml
-  kubectl apply -f k8s/jobs/configmap-training.yaml
-  kubectl -n mlops-u1 delete job train && kubectl apply -f k8s/jobs/job-train.yaml
-  kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
-  ```
-
-- Job'ai nekeičiami: pakartotinai paleisti `kubectl -n mlops-u1 delete job train` ir vėl tas pats `apply`.
-- Išbandyta: run'as `bb5f031f` su `git_commit=71249941` davė tas pačias metrikas kaip `dvc repro` (0,7764 / 0,6298),
-  o su `MAX_DEPTH: "10"` run'as `64eda7cc` — kaip gylio 10 run'as (0,7440 / 0,6181). Vaizdas atsisiųstas per 2,2 s;
-  Job'as su jau atsisiųstu vaizdu baigėsi per 20 s.
-
-## Problemų sprendimas
-
-| Simptomas | Priežastis ir sprendimas |
-|---|---|
-| `MLFLOW_TRACKING_URI wasn't set properly` | Kintamasis nenustatytas šiame terminale: `export MLFLOW_TRACKING_URI=http://127.0.0.1:5000` |
-| `403 Invalid Host header` | Host'o nėra MLflow `--allowed-hosts` sąraše (`k8s/mlflow/deployment-mlflow.yaml`) |
-| `curl 127.0.0.1:5000` atmeta ryšį | Klasteris sukurtas be `k8s/kind-config.yaml` (portai nustatomi tik kuriant: ištrinkite ir sukurkite iš naujo) arba MLflow Pod'as dar neparengtas (`kubectl -n mlops-u1 get pods`) |
-| macOS: 5000 portas užimtas | Jį naudoja AirPlay Receiver: išjunkite jį arba `k8s/kind-config.yaml` pakeiskite `hostPort` (pvz. 5001) ir atitinkamai `MLFLOW_TRACKING_URI` |
-| Postgres Pod'as `CrashLoopBackOff` | Secret sukurtas su tuščiu slaptažodžiu (`PG_PASSWORD` nenustatytas): `kubectl -n mlops-u1 delete secret postgres-credentials`, sukurkite jį iš naujo ir ištrinkite abu Pod'us (`-l app=postgres`, `-l app=mlflow`) |
-| `dvc repro` nieko nedaro naujame klasteryje | Po `dvc pull` išvestys sutampa su `dvc.lock`: `dvc repro --force` |
+Hiperparametrai yra ConfigMap `training-config`; jų keitimas ir pakartotinis paleidimas `docs/runbook.md`.
 
 ## Išvalymas
 
@@ -256,16 +115,7 @@ kubectl -n mlops-u1 logs job/train
 kind delete cluster --name mlops-u1
 ```
 
-Postgres ir MLflow artefaktų PVC (kind `local-path`) yra kind mazgo konteineryje: perkūrus Pod'ą duomenys išlieka,
-ištrynus klasterį dingsta.
-
-## Pateikimas (ZIP į eMokymus)
-
-```bash
-git archive --format=zip -o ../mlops-u1-u1-final.zip u1-final
-```
-
-Į ZIP patenka tik Git sekami failai (kodas, `k8s/`, `docs/`), be `mlruns/`, DVC cache ir duomenų.
+Postgres ir MLflow artefaktų PVC išlieka perkūrus Pod'ą, bet dingsta ištrynus klasterį.
 
 ## Duomenys ir licencija
 
