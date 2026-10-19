@@ -177,7 +177,7 @@ Skriptas iš MLflow paima run'o `git_commit` ir hiperparametrus, daro `git check
 ```
 accuracy: original=0.7121 reproduced=0.7121 delta=0.0000
 f1: original=0.5947 reproduced=0.5947 delta=0.0000
-REPRODUCED in 20s -> new run 4fbc102c1ee841c181489d5ba145deca
+REPRODUCED in 20s -> new run 5c045194b72d415c9b06b03ee03191d7
 ```
 
 ### 8. Mokymo Docker vaizdas

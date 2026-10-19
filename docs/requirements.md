@@ -61,7 +61,7 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 ### 3.1 Eksperimentų sekimo ir atkartojamumo NFR (v1.1)
 | ID | Kategorija | Reikalavimas | Metrika/KPI |
 |---|---|---|---|
-| NFR-08 | Atkartojamumas | Bet kuris istorinis run'as atkuriamas `python reproduce.py <run_id>` | ≤ 2 min (duomenys jau DVC cache), \|Δaccuracy\| ir \|Δf1\| ≤ 0,005; matuojama su `time`. Išmatuota: 20 s, abu Δ = 0,0000 (`6ef2b108` atkurtas kaip `4fbc102c`) |
+| NFR-08 | Atkartojamumas | Bet kuris istorinis run'as atkuriamas `python reproduce.py <run_id>` | ≤ 2 min (duomenys jau DVC cache), \|Δaccuracy\| ir \|Δf1\| ≤ 0,005; matuojama su `time`. Išmatuota: 20 s, abu Δ = 0,0000 (`6ef2b108` atkurtas kaip `5c045194`) |
 | NFR-09 | Atsekamumas | Kiekvienas run'as turi `git_commit` ir `dvc_raw_md5` tag'us | 100 % run'ų; tikrinama MLflow paieška. Išmatuota: 13/13 |
 | NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5`, 100 % run'ų. Išmatuota: `a2b156db…` sutampa 13/13 |
 
