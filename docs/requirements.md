@@ -86,6 +86,9 @@ NFR-12 (kurso pavyzdžio ONNX vaizdo parengtis) šiam projektui netaikomas; nume
   dažnis).
 - Vieno mazgo kind klasteris kūrėjo kompiuteryje, be GPU.
 - MLflow klientas ir serveris 3.15.2; autentifikacijos nėra, todėl serveris pasiekiamas tik per localhost.
+- NFR-14 taikomas mokymo vaizdui (vieninteliam, kurį kuriame patys). MLflow ir Postgres Pod'ai naudoja oficialius
+  vaizdus su jų numatytais naudotojais: Postgres serverio procesai veikia kaip `postgres` (UID 999), MLflow serveris
+  savo Pod'e veikia kaip root; abu pasiekiami tik per `127.0.0.1` (NFR-05).
 
 ## 6. Rizikos
 | Rizika | Tikimybė | Poveikis | Mažinimas |

@@ -57,7 +57,8 @@ kind klasteris mlops-u1 (namespace mlops-u1)
 
 ## Reikalavimai
 
-Išbandyta Linux'e (NixOS 26.05):
+Išbandyta NixOS 26.05 ir CachyOS, su `nix-shell` ir be Nix (tada Docker, kind ir kubectl iš pacman, Python 3.12 per
+`uv`). Lentelėje NixOS versijos; `nix-shell` duoda tas pačias, išskyrus Docker, kuris visada iš sistemos:
 
 | Įrankis | Versija |
 |---|---|
@@ -86,11 +87,11 @@ Visos komandos vykdomos repo šaknyje, viename terminale.
 
 ```bash
 git clone https://github.com/lukasja111/mlops-u1.git && cd mlops-u1
-python3.12 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
+python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt
 ```
 
 Su Nix tarp šių eilučių paleiskite `nix-shell`. Kiekviename naujame terminale aplinką aktyvuokite iš naujo:
-`. .venv/bin/activate` (su Nix pirma `nix-shell`).
+`source .venv/bin/activate` (su Nix pirma `nix-shell`).
 
 ### 2. Duomenys
 
@@ -152,7 +153,7 @@ Postgres ir MLflow vaizdus. UI: http://127.0.0.1:5000.
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
 ```
 
-Nustatykite kiekviename naujame terminale, kartu su `. .venv/bin/activate`. Be jo `train.py` iškart baigiasi klaida
+Nustatykite kiekviename naujame terminale, kartu su `source .venv/bin/activate`. Be jo `train.py` iškart baigiasi klaida
 (`MLFLOW_TRACKING_URI wasn't set properly`), todėl run'ai nepatenka į vietinį `mlruns/`, tik į klasterio MLflow.
 
 ### 5. Pipeline'as
@@ -292,6 +293,8 @@ kind delete cluster --name mlops-u1
 ```
 
 Postgres ir MLflow artefaktų PVC išlieka perkūrus Pod'ą, bet dingsta ištrynus klasterį.
+Jei po kompiuterio perkrovimo klasteris neatsako: `docker start mlops-u1-control-plane` ir palaukite apie minutę,
+kol Pod'ai vėl Running; run'ai lieka vietoje.
 
 ## Problemų sprendimas
 
@@ -300,7 +303,9 @@ Postgres ir MLflow artefaktų PVC išlieka perkūrus Pod'ą, bet dingsta ištryn
 | `python3.12: command not found` | Distribucijoje tik naujesnis Python (pvz. Arch, CachyOS): `uv venv --seed --python 3.12 .venv` arba `nix-shell` (žr. „Reikalavimai“) |
 | `ImportError: libstdc++.so.6: cannot open shared object file` | Python iš Nix, bet venv naudojamas ne `nix-shell` viduje: paleiskite `nix-shell` (`shell.nix` nustato `LD_LIBRARY_PATH`) |
 | `permission denied while trying to connect to the Docker daemon socket` | Naudotojas ne `docker` grupėje: `sudo usermod -aG docker $USER`, tada atsijunkite ir vėl prisijunkite |
-| `dvc: command not found` arba `ModuleNotFoundError` per `dvc repro` | Neaktyvuotas venv: `. .venv/bin/activate` |
+| `dvc: command not found` arba `ModuleNotFoundError` per `dvc repro` | Neaktyvuotas venv: `source .venv/bin/activate` |
+| `git commit` → `Please tell me who you are` | Naujame kompiuteryje nenustatytas Git autorius: `git config --global user.name "Vardas Pavardė"` ir `git config --global user.email "vardas@pastas.lt"` |
+| `bash: .venv/bin/activate: Permission denied` | Failas paleistas kaip programa, o ne įkeltas į shell'ą: `source .venv/bin/activate` (be `sudo`) |
 | `MLFLOW_TRACKING_URI wasn't set properly` | Kintamasis nenustatytas šiame terminale: `export MLFLOW_TRACKING_URI=http://127.0.0.1:5000` |
 | `403 Invalid Host header` | Host'o nėra MLflow `--allowed-hosts` sąraše (`k8s/mlflow/deployment-mlflow.yaml`) |
 | `curl 127.0.0.1:5000` atmeta ryšį | Klasteris sukurtas be `k8s/kind-config.yaml` (portai nustatomi tik kuriant: ištrinkite ir sukurkite iš naujo) arba MLflow Pod'as dar neparengtas (`kubectl -n mlops-u1 get pods`) |

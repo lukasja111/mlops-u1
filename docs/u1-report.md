@@ -27,7 +27,8 @@
 5. **HIGH CVE `cryptography` 49.0.0** su pilnu `mlflow`: vaizde `mlflow-skinny`, 745 → 450 MB, Python radinių nebeliko.
 6. **NixOS aplinka:** nixpkgs `dvc` sugadino venv, wheel'ams trūko `libstdc++`, `gh` nebuvo PATH; sprendimas: `dvc`
    venv'e, `LD_LIBRARY_PATH` ir `gh` lokaliame `shell.nix`.
-7. **Nedaryta:** E1, E3, E4, E5.
+7. **Nedaryta:** E1 (laikas atiteko nutekėjimo taisymui; autentifikacija planuojama U2-R3 kartu su prisijungimų
+   Secret), E3 ir E4 (ta pati priežastis; GCP kreditai nenaudoti), E5 (kompiuteryje tik AMD GPU).
 
 ## Kiek laiko užtruko
 
