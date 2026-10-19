@@ -23,7 +23,7 @@ spec:
           command: ["mlflow"]
           args:
             - server
-            - --backend-store-uri=postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+            - --backend-store-uri=postgresql://$(POSTGRES_USER)@postgres:5432/$(POSTGRES_DB)
             - --artifacts-destination=/mlartifacts
             - --host=0.0.0.0
             - --port=5000
@@ -34,7 +34,7 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef: {name: postgres-credentials, key: POSTGRES_USER}
-            - name: POSTGRES_PASSWORD
+            - name: PGPASSWORD
               valueFrom:
                 secretKeyRef: {name: postgres-credentials, key: POSTGRES_PASSWORD}
             - name: POSTGRES_DB

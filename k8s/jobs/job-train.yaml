@@ -18,6 +18,7 @@ spec:
         - name: train
           image: ghcr.io/lukasja111/mlops-u1/train:sha-0a26641f
           imagePullPolicy: IfNotPresent
+          args: ["python", "src/train.py", "--n_estimators=$(N_ESTIMATORS)", "--max_depth=$(MAX_DEPTH)"]
           envFrom:
             - configMapRef:
                 name: training-config
