@@ -1,7 +1,7 @@
-# Airbnb Superhost klasifikatorius — reikalavimai
+# Airbnb Superhost klasifikatorius: reikalavimai
 
 **Versija:** 1.4
-**Data:** 2026-10-19
+**Data:** 2026-10-20
 **Autoriai(-ius):** Lukas Jasiulionis (lukasja111)
 
 ## 1. Apimtis
@@ -43,7 +43,7 @@ Superhost. Klasės nesubalansuotos, todėl pagrindinė metrika yra F1 (Superhost
 | NFR-01 | Kokybė | Superhost klasės F1 testinėje imtyje | F1 ≥ 0,62 (`metrics.json` raktas `f1`). Išmatuota (`max_depth` 5 / 10 / 15): 0,5947 / 0,6181 / 0,6298; tenkina tik 15 (dabar `params.yaml`) |
 | NFR-01a | Vertinimo validumas | Tas pats skelbimas nepatenka ir į mokymo, ir į testinę imtį | 0 bendrų vietų (`lat`, `lng`) tarp `train.csv` ir `test.csv`; tikrinama komanda po lentele. Išmatuota: 0 (v1.2 atsitiktinis padalijimas: 6 321 bendra vieta) |
 | NFR-02 | Kokybė | Modelis geresnis už „visada ne Superhost“ | accuracy ≥ 0,75 („visada ne“ duoda 0,744). Išmatuota: 0,7121 / 0,7440 / 0,7764; tenkina tik 15 |
-| NFR-03 | Našumas | Mokymo trukmė CPU | `train` stage'as ≤ 2 min; matuojama MLflow run'o trukme. Išmatuota: 6,5–9,1 s; visas `dvc repro --force` per `reproduce.py` 20 s |
+| NFR-03 | Našumas | Mokymo trukmė CPU | `train` stage'as ≤ 2 min; matuojama MLflow run'o trukme. Išmatuota: nuo 6,5 iki 9,1 s; visas `dvc repro --force` per `reproduce.py` 20 s |
 | NFR-04 | Patikimumas | MLflow duomenys išlieka perkūrus Pod'us | 0 prarastų run'ų ir artefaktų po `kubectl delete pod -l app=mlflow` ir `-l app=postgres`. Išmatuota: išliko 10/10 run'ų ir modelių, modelis įkeltas iš serverio |
 | NFR-05 | Saugumas | MLflow serveris nepasiekiamas iš tinklo | Klausosi tik `127.0.0.1:5000` (kind `listenAddress`); tikrinama `ss -ltn`. Išmatuota: tik `127.0.0.1:5000` |
 | NFR-06 | Saugumas | Jokių paslapčių Git repozitorijoje | 0 slaptažodžių ir token'ų, prisijungimai tik K8s Secret; tikrinama `git grep -i password`. Išmatuota: 0 (tik Secret raktų pavadinimai) |
@@ -66,13 +66,11 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 | NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5`, 100 % run'ų. Išmatuota: `a2b156db…` sutampa 13/13 |
 
 ### 3.2 Konteinerizacijos NFR (v1.2)
-NFR-12 (kurso pavyzdžio ONNX vaizdo parengtis) šiam projektui netaikomas; numeracija išlaikyta pagal kursą.
-
 | ID | Kategorija | Reikalavimas | Metrika/KPI |
 |---|---|---|---|
 | NFR-11 | Dydis | Mokymo vaizdas kuo mažesnis | rootfs ≤ 500 MB (`du --apparent-size`, MB = 1 000 000 B; `docs/image-sizes.md`). Išmatuota: 449,63 MB (`sha-71249941`) |
-| NFR-13 | Saugumas | 0 CRITICAL pažeidžiamumų prieš publikavimą | `trivy image --scanners vuln --severity CRITICAL --exit-code 1` grąžina 0; HIGH aptarti `docs/security-scan.md`. Išmatuota: CRITICAL 0, HIGH 44 (8 Debian CVE be pataisų) |
-| NFR-14 | Saugumas | Konteineris vykdomas ne root | UID ≠ 0; tikrinama `docker run --rm --entrypoint id <vaizdas> -u`. Išmatuota: uid 1000 (`mluser`) |
+| NFR-12 | Saugumas | 0 CRITICAL pažeidžiamumų prieš publikavimą | `trivy image --scanners vuln --severity CRITICAL --exit-code 1` grąžina 0; HIGH aptarti `docs/security-scan.md`. Išmatuota: CRITICAL 0, HIGH 44 (8 Debian CVE be pataisų) |
+| NFR-13 | Saugumas | Konteineris vykdomas ne root | UID ≠ 0; tikrinama `docker run --rm --entrypoint id <vaizdas> -u`. Išmatuota: uid 1000 (`mluser`) |
 
 ## 4. KPI
 - **Modelio:** F1 (Superhost) pagrindinė; accuracy lyginama su 0,744; precision ir recall informacinės.
@@ -86,9 +84,8 @@ NFR-12 (kurso pavyzdžio ONNX vaizdo parengtis) šiam projektui netaikomas; nume
   dažnis).
 - Vieno mazgo kind klasteris kūrėjo kompiuteryje, be GPU.
 - MLflow klientas ir serveris 3.15.2; autentifikacijos nėra, todėl serveris pasiekiamas tik per localhost.
-- NFR-14 taikomas mokymo vaizdui (vieninteliam, kurį kuriame patys). MLflow ir Postgres Pod'ai naudoja oficialius
-  vaizdus su jų numatytais naudotojais: Postgres serverio procesai veikia kaip `postgres` (UID 999), MLflow serveris
-  savo Pod'e veikia kaip root; abu pasiekiami tik per `127.0.0.1` (NFR-05).
+- NFR-13 taikomas mokymo vaizdui (vieninteliam savam). MLflow ir Postgres Pod'ai naudoja oficialius vaizdus su jų
+  numatytais naudotojais ir pasiekiami tik per `127.0.0.1` (NFR-05).
 
 ## 6. Rizikos
 | Rizika | Tikimybė | Poveikis | Mažinimas |
@@ -100,10 +97,10 @@ NFR-12 (kurso pavyzdžio ONNX vaizdo parengtis) šiam projektui netaikomas; nume
 | Gylio 15 F1 tik 0,01 virš NFR-01 slenksčio | Vidutinė | Vidutinis | Hiperparametrai nerenkami pagal testinę imtį; U2: kryžminė validacija su grupėmis mokymo imtyje |
 
 ## 7. Keitimo istorija
-| Versija | Data | Pakeitimai |
-|---|---|---|
-| 1.0 | 2026-10-19 | Pradinė versija: apimtis, FR-01..05, NFR-01..07 |
-| 1.1 | 2026-10-19 | NFR-08..10; išmatuotos NFR-01..07 reikšmės |
-| 1.2 | 2026-10-19 | NFR-11, NFR-13, NFR-14 (konteinerizacija) |
-| 1.3 | 2026-10-19 | Nutekėjimas ištaisytas: padalijimas pagal skelbimo vietą (NFR-15), reikšmės išmatuotos iš naujo |
-| 1.4 | 2026-10-19 | Sutrumpinta; NFR-15 dabar NFR-01a (kurso NFR-15..18 yra kaštų NFR); NFR-03 nurodo tikrąjį matavimo būdą |
+| Versija | Data | Autorius | Pakeitimai |
+|---|---|---|---|
+| 1.0 | 2026-10-19 | lukasja111 | Pradinis dokumentas: problema, suinteresuotosios šalys, panaudos atvejai, FR, NFR su KPI, rizikos |
+| 1.1 | 2026-10-19 | lukasja111 | Reprodukcijos, atsekamumo ir duomenų versijos NFR; visos reikšmės išmatuotos klasterio run'uose |
+| 1.2 | 2026-10-19 | lukasja111 | Mokymo vaizdo NFR: dydis, Trivy, ne root |
+| 1.3 | 2026-10-19 | lukasja111 | Rastas ir ištaisytas nutekėjimas tarp imčių (tas pats skelbimas abiejose); naujas padalijimo NFR; reikšmės išmatuotos iš naujo |
+| 1.4 | 2026-10-20 | lukasja111 | Sutrumpinta; padalijimo NFR pervadintas NFR-01a (saugo NFR-01); NFR-03 matuojamas run'o trukme; vaizdo NFR sunumeruoti iš eilės |

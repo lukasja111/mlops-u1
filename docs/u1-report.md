@@ -20,7 +20,7 @@
    skaidoma pagal vietą (`StratifiedGroupKFold`, NFR-01a): F1 0,6298, KPI tenkina tik gylis 15; seni run'ai
    pažymėti `split=random`.
 2. **Žemas F1:** Superhost tik 25,6 %, todėl gylis 5 be klasių svorių davė F1 0,227; `class_weight="balanced"`
-   pakėlė jį iki 0,595–0,630.
+   pakėlė jį iki 0,595 ir 0,630 (gylis 5 ir 15).
 3. **Kurso `train.py` su RandomForest lūžta** (skops `UntrustedTypesFoundException`): pridėta
    `skops_trusted_types=["sklearn.tree._tree.Tree"]`.
 4. **MLflow serveris netilpo į 2 GiB** (kurso komanda: 18 procesų, 2,2 GB): `requests` 2560Mi, `limits` 3Gi.
