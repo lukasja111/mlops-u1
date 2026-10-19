@@ -10,68 +10,68 @@ stages:
       nfiles: 20
     - path: src/data_prep.py
       hash: md5
-      md5: a3b1364a2ad67814f84c64ef63501e63
-      size: 1017
+      md5: 88e1bc3f5f2464454b4e65086aa60420
+      size: 1225
     outs:
     - path: data/processed/test.csv
       hash: md5
-      md5: c9659c29ad3e46366902f48dade8c406
-      size: 2098094
+      md5: ea169cb09860a90fd5fc39c90c1b954e
+      size: 2097419
     - path: data/processed/train.csv
       hash: md5
-      md5: 226b9bd845a54a3afa5853edecebc28a
-      size: 8389014
+      md5: 695378ec2a57f819862d4a32ebac9397
+      size: 8389689
   train:
     cmd: python src/train.py
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: c9659c29ad3e46366902f48dade8c406
-      size: 2098094
+      md5: ea169cb09860a90fd5fc39c90c1b954e
+      size: 2097419
     - path: data/processed/train.csv
       hash: md5
-      md5: 226b9bd845a54a3afa5853edecebc28a
-      size: 8389014
+      md5: 695378ec2a57f819862d4a32ebac9397
+      size: 8389689
     - path: src/train.py
       hash: md5
-      md5: 10cfc2922ba149a3ef6db48bc2e7d400
-      size: 3407
+      md5: 2d2250e8a48d6316677174cf2a985166
+      size: 3274
     params:
       params.yaml:
         train:
           n_estimators: 100
-          max_depth: 15
+          max_depth: 5
           random_seed: 42
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: d90240c44dc22e5e31881e6e89075267
-      size: 37341817
+      md5: 61b9a98f12280dec839591195851eb2a
+      size: 866489
     - path: models/run_id.txt
       hash: md5
-      md5: d6029b50c3765ff9a8af1395374d9114
+      md5: cbb55d94f8392e5227619ad00da527bf
       size: 33
   evaluate:
     cmd: python src/eval.py
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: c9659c29ad3e46366902f48dade8c406
-      size: 2098094
+      md5: ea169cb09860a90fd5fc39c90c1b954e
+      size: 2097419
     - path: models/model.pkl
       hash: md5
-      md5: d90240c44dc22e5e31881e6e89075267
-      size: 37341817
+      md5: 61b9a98f12280dec839591195851eb2a
+      size: 866489
     - path: models/run_id.txt
       hash: md5
-      md5: d6029b50c3765ff9a8af1395374d9114
+      md5: cbb55d94f8392e5227619ad00da527bf
       size: 33
     - path: src/eval.py
       hash: md5
-      md5: 9739cd0a3ba1dadbe3b0175ff3c07fac
-      size: 1163
+      md5: 9930403dae8b8f3c25b11e8749b422ce
+      size: 1687
     outs:
     - path: metrics.json
       hash: md5
-      md5: a878e18dbe228c90c92275af85b9208a
-      size: 132
+      md5: 977c92712e759f22c23ba9513a004743
+      size: 131
