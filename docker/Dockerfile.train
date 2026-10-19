@@ -20,7 +20,7 @@ ENV GIT_COMMIT=$GIT_COMMIT \
     PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
-COPY src/train.py ./src/train.py
+COPY src/ ./src/
 COPY params.yaml ./
 COPY data/processed/ ./data/processed/
 COPY data/raw.dvc ./data/

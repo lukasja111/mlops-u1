@@ -1,6 +1,6 @@
 *
 !requirements-train.txt
-!src/train.py
+!src/
 !params.yaml
 !data/processed/
 !data/raw.dvc
