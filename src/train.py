@@ -79,17 +79,17 @@ def main() -> None:
         acc = accuracy_score(y_test, preds)
         f1 = f1_score(y_test, preds)
 
-        info = mlflow.sklearn.log_model(                            # model + environment files
+        info = mlflow.sklearn.log_model(
             model,
             name="model",
             input_example=x_train.head(3),
             skops_trusted_types=["sklearn.tree._tree.Tree"],
         )
-        mlflow.log_metric("accuracy", acc, model_id=info.model_id)  # metric <-> model link
+        mlflow.log_metric("accuracy", acc, model_id=info.model_id)
         mlflow.log_metric("f1", f1, model_id=info.model_id)
 
         os.makedirs(ROOT / "models", exist_ok=True)
-        joblib.dump(model, ROOT / "models/model.pkl")               # DVC-tracked artefact for later weeks
+        joblib.dump(model, ROOT / "models/model.pkl")
         (ROOT / "models/run_id.txt").write_text(run.info.run_id + "\n")
         print(f"run_id={run.info.run_id} model_id={info.model_id} accuracy={acc:.4f} f1={f1:.4f}")
 

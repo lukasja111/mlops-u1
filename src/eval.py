@@ -4,7 +4,7 @@ from pathlib import Path
 import joblib
 import mlflow
 import pandas as pd
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,9 +26,21 @@ def main() -> None:
     run_id_file = ROOT / "models/run_id.txt"
     if run_id_file.exists():
         try:
+            run_id = run_id_file.read_text().strip()
             client = mlflow.MlflowClient()
             for key, value in metrics.items():
-                client.log_metric(run_id_file.read_text().strip(), f"eval/{key}", value)
+                client.log_metric(run_id, f"eval/{key}", value)
+            importances = zip(x.columns, model.feature_importances_.round(4).tolist())
+            client.log_dict(
+                run_id,
+                dict(sorted(importances, key=lambda kv: kv[1], reverse=True)),
+                "eval/feature_importances.json",
+            )
+            client.log_dict(
+                run_id,
+                {"labels": [0, 1], "matrix": confusion_matrix(y, preds).tolist()},
+                "eval/confusion_matrix.json",
+            )
         except Exception as exc:
             print(f"warning: eval metrics not attached to the training run ({exc})")
 
