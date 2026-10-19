@@ -3,7 +3,7 @@
 ## Kas padaryta
 
 - **R1:** repo struktūra (`src/`, `docker/`, `k8s/`, `docs/`), README su paleidimu nuo nulio, `docs/requirements.md`
-  v1.3: FR-01..05 ir NFR-01..15 su KPI ir išmatuotomis reikšmėmis, tarp jų reprodukcijos NFR-08 ir padalijimo NFR-15.
+  v1.4: FR-01..05 ir 14 NFR su KPI ir išmatuotomis reikšmėmis, tarp jų reprodukcijos NFR-08 ir padalijimo NFR-01a.
 - **R2:** DVC pipeline'as `prepare → train → evaluate` iš 20 CSV (HF `kraina/airbnb`, fiksuota revizija),
   `params.yaml`, commit'intas `dvc.lock`, lokalus DVC remote. 3 run'ai klasterio MLflow (`max_depth` 5 / 10 / 15:
   F1 0,5947 / 0,6181 / 0,6298) su požymių svarba ir klaidų matrica; `reproduce.py` atkūrė pirmą run'ą per 20 s, Δ = 0.
@@ -19,7 +19,7 @@
 1. **Duomenų nutekėjimas.** Peržiūrint rezultatus paaiškėjo, kad tas pats skelbimas yra ir darbo dienų, ir savaitgalio
    faile, o atsitiktinis padalijimas 64,5 % testinių eilučių paliko dvynį mokymo imtyje. Gylio 15 F1 0,7197 buvo
    išpūstas: nematytiems skelbimams tik 0,63. Sprendimas: `data_prep.py` skaido pagal vietą (`city`, `lat`, `lng`) su
-   `StratifiedGroupKFold`; bendrų vietų 0 (NFR-15), gylio 15 F1 0,6298, KPI dabar tenkina tik gylis 15 (anksčiau 10
+   `StratifiedGroupKFold`; bendrų vietų 0 (NFR-01a), gylio 15 F1 0,6298, KPI dabar tenkina tik gylis 15 (anksčiau 10
    ir 15). Seni run'ai liko MLflow su tag'u `split=random`. Likusi rizika: keli to paties šeimininko skelbimai
    skirtingose vietose (šeimininko ID duomenyse nėra).
 2. **Žemas F1.** Superhost klasė sudaro 25,6 %, todėl negilus miškas beveik niekada nesako „taip“ (gylis 5 be klasių

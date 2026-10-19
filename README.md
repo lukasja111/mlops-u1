@@ -27,7 +27,7 @@ versija skaidė eilutes atsitiktinai, todėl 64,5 % testinių eilučių turėjo 
 mokymo imtyje ir metrikos buvo išpūstos: gylio 15 F1 0,7197, nors nematytiems skelbimams tik 0,63. Dabar
 `src/data_prep.py` skaido pagal vietą: visos tos pačios (`city`, `lat`, `lng`) eilutės patenka į tą pačią pusę
 (`StratifiedGroupKFold`, 5 dalys, testui viena, ~20 %; Superhost dalis abiejose imtyse 25,6 %). Bendrų vietų 0
-(NFR-15). Seni run'ai liko MLflow palyginimui su tag'u `split=random`.
+(NFR-01a). Seni run'ai liko MLflow palyginimui su tag'u `split=random`.
 
 ## Struktūra
 
