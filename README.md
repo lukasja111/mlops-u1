@@ -5,7 +5,8 @@ modelį: atkartojamas DVC pipeline'as, eksperimentų sekimas savame MLflow serve
 Docker vaizdas GHCR ir mokymas kaip Kubernetes Job (E2).
 
 Repo https://github.com/lukasja111/mlops-u1, tag'as `u1-final`. Autorius: Lukas Jasiulionis (lukasja111). Paleidimas
-nuo nulio: 1 iki 4 žingsnis duoda pirmą run'ą klasterio MLflow, toliau eksperimentai, reprodukcija, vaizdas ir Job'as.
+nuo nulio: žingsniai 1 iki 4 duoda pirmą run'ą klasterio MLflow serveryje, toliau eksperimentai, reprodukcija, vaizdas
+ir Job'as.
 
 ## Portai, prisijungimai, rezultatai
 
@@ -38,7 +39,7 @@ Klasteriui reikia apie 4 GB laisvos RAM ir laisvo 5000 porto.
 
 ## Paleidimas nuo nulio
 
-Komandos vykdomos `bash` terminale, repo šaknyje, viename terminale.
+Komandos vykdomos `bash` shell'e, repo šaknyje, viename terminale.
 
 ### 1. Repo, įrankiai ir Python aplinka
 
@@ -134,8 +135,8 @@ yra `run_id=…` (7 žingsnis).
 ### 5. Kur žiūrėti rezultatus
 
 - MLflow UI (http://127.0.0.1:5000), eksperimentas `airbnb-superhost`: run'ai `rf-n<n_estimators>-d<max_depth>`,
-  metrikos `f1` (pagrindinė), `accuracy` ir `eval/*`, artefaktai, modelis, tag'ai. Autoriaus serveryje run'ai iš laiko
-  prieš nutekėjimo taisymą pažymėti `split=random`.
+  metrikos `f1` (pagrindinė), `accuracy` ir `eval/*`, artefaktai, modelis, tag'ai. Autoriaus serveryje seni run'ai
+  (prieš nutekėjimo taisymą) pažymėti `split=random`.
 - Terminale: `dvc metrics show`; palyginimui su ankstesniu commit'u `dvc metrics diff <commit>` ir
   `dvc params diff <commit>`.
 - KPI ir išmatuotos reikšmės: `docs/requirements.md`.
