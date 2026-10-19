@@ -1,13 +1,13 @@
-# Airbnb hostu klasifikatorius i superhostus U1 MLOps Projektui paleidimo instrukcijos
+# Airbnb hostų klasifikatorius į superhostus: U1 MLOps projekto paleidimo instrukcijos
 
-Binarinis klasifikatorius: ar Airbnb skelbimo šeimininkas yra Superhost (10 Europos miestų, 51 707 skelbimai). Aplink
+Binarinis klasifikatorius: ar Airbnb skelbimo šeimininkas yra Superhost (10 Europos miestų, 51 707 įrašai). Aplink
 modelį: atkartojamas DVC pipeline'as, eksperimentų sekimas savame MLflow serveryje lokaliame kind klasteryje, mokymo
 Docker vaizdas GHCR ir mokymas kaip Kubernetes Job (E2).
 
 - **Repo:** https://github.com/lukasja111/mlops-u1
 - **Tag:** `u1-final`
 - **Autorius:** Lukas Jasiulionis (lukasja111)
-- **Vaizdas:** `ghcr.io/lukasja111/mlops-u1/train:sha-0a26641f` (viešas; digest `docs/image-sizes.md`)
+- **Vaizdas:** `ghcr.io/lukasja111/mlops-u1/train:sha-71249941` (viešas; digest `docs/image-sizes.md`)
 - **Kaip paleisti:** `kind create cluster` → Postgres ir MLflow klasteryje → duomenys (`dvc pull` arba HF) →
   `dvc repro --force`; rezultatai MLflow UI http://127.0.0.1:5000 (žr. [Paleidimas nuo nulio](#paleidimas-nuo-nulio))
 
@@ -15,12 +15,19 @@ Docker vaizdas GHCR ir mokymas kaip Kubernetes Job (E2).
 
 | Run'as | `max_depth` | accuracy | F1 (Superhost) |
 |---|---:|---:|---:|
-| `rf-n100-d5` | 5 | 0,7184 | 0,6058 |
-| `rf-n100-d10` | 10 | 0,7616 | 0,6465 |
-| `rf-n100-d15` | 15 | 0,8279 | 0,7197 |
+| `rf-n100-d5` | 5 | 0,7121 | 0,5947 |
+| `rf-n100-d10` | 10 | 0,7440 | 0,6181 |
+| `rf-n100-d15` | 15 | 0,7764 | 0,6298 |
 
-KPI (`docs/requirements.md`): F1 ≥ 0,62 ir accuracy ≥ 0,75 („visada ne Superhost“ duoda 0,744). Tenkina gyliai 10 ir
-15; `params.yaml` dabar 15. Reprodukcija: 15 s, Δ = 0.
+KPI (`docs/requirements.md`): F1 ≥ 0,62 ir accuracy ≥ 0,75 („visada ne Superhost“ duoda 0,744). Tenkina tik gylis 15;
+`params.yaml` dabar 15. Reprodukcija: 20 s, Δ = 0.
+
+**Duomenų nutekėjimas (rastas ir ištaisytas).** Tas pats skelbimas yra ir darbo dienų, ir savaitgalio faile. Pirmoji
+versija skaidė eilutes atsitiktinai, todėl 64,5 % testinių eilučių turėjo dvynį (tas pats miestas, `lat`, `lng`)
+mokymo imtyje ir metrikos buvo išpūstos: gylio 15 F1 0,7197, nors nematytiems skelbimams tik 0,63. Dabar
+`src/data_prep.py` skaido pagal vietą: visos tos pačios (`city`, `lat`, `lng`) eilutės patenka į tą pačią pusę
+(`StratifiedGroupKFold`, 5 dalys, testui viena, ~20 %; Superhost dalis abiejose imtyse 25,6 %). Bendrų vietų 0
+(NFR-15). Seni run'ai liko MLflow palyginimui su tag'u `split=random`.
 
 ## Struktūra
 
@@ -33,7 +40,7 @@ models/run_id.txt      paskutinio mokymo MLflow run_id
 docker/Dockerfile.train, .dockerignore, requirements-train.txt   mokymo vaizdas
 k8s/kind-config.yaml   klasterio konfigūracija; k8s/namespace.yaml
 k8s/mlflow/            Postgres ir MLflow: PVC, Deployment, Service
-k8s/jobs/              E2: ConfigMap ir mokymo Job
+k8s/jobs/              E2: ConfigMap (MLflow adresas, hiperparametrai) ir mokymo Job
 scripts/publish.sh     vaizdo publikavimas į GHCR
 docs/                  requirements.md, architecture.md, image-sizes.md, security-scan.md, u1-report.md,
                        trivy-train.json, sbom-train.json
@@ -43,6 +50,7 @@ docs/                  requirements.md, architecture.md, image-sizes.md, securit
 
 Docker, [kind](https://kind.sigs.k8s.io/) ≥ 0.31, kubectl, Python 3.12, apie 4 GB laisvos RAM. Vaizdo skenavimui ir
 publikavimui: [Trivy](https://trivy.dev/) ir [gh](https://cli.github.com/) (`gh auth login --scopes write:packages`).
+Išbandyta su: Docker 29.8.1, kind 0.31.0, kubectl 1.36.3, Python 3.12.14, DVC 3.67.1, Trivy 0.72.0, gh 2.102.0 (Linux).
 
 ```bash
 python3.12 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
@@ -82,7 +90,6 @@ dvc repro --force
 git commit -am "exp: pirmas run'as savame klasteryje"
 ```
 
-- 2 žingsnis: slaptažodis šešioliktainis, todėl jo nereikia koduoti MLflow DB URI.
 - 5 žingsnis: naujame klasteryje MLflow tuščias, o po `dvc pull` (autoriaus kompiuteryje) visos išvestys sutampa su `dvc.lock`, todėl be
   `--force` DVC viską praleistų ir run'o nebūtų. Commit'as reikalingas, nes `dvc.lock` ir `models/run_id.txt` dabar
   rodo į jūsų run'ą, o `reproduce.py` reikalauja švaraus darbo medžio.
@@ -124,15 +131,16 @@ pakeitimą, failai skiriasi nuo autoriaus (md5 `a2b156db54022d6fe3c950258a5d5c9a
 
 - **Postgres:** naudotojas ir slaptažodis tik Secret `postgres-credentials` (2 žingsnis). Peržiūrėti:
   `kubectl -n mlops-u1 get secret postgres-credentials -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d`.
-  Kompromisas: MLflow slaptažodį gauna `--backend-store-uri` argumente, todėl Pod'o viduje jis matomas `ps` išvestyje;
-  lokaliam klasteriui tai priimtina.
+  MLflow slaptažodį gauna aplinkos kintamuoju `PGPASSWORD` (jį skaito PostgreSQL klientas), o `--backend-store-uri`
+  adrese slaptažodžio nėra, todėl jo nerodo nei `ps`, nei `kubectl describe` (ten matyti tik nuoroda į Secret).
 - **MLflow:** be autentifikacijos (E1 nedaromas), todėl kind klausosi tik `127.0.0.1`.
 
 ## Kur žiūrėti rezultatus
 
 - MLflow UI → eksperimentas `airbnb-superhost`: run'ai `rf-n<n_estimators>-d<max_depth>`; metrikos `f1` (Superhost
-  klasės, pagrindinė), `accuracy` ir `eval/*` (iš `eval.py`); tag'ai `git_commit`, `dvc_raw_md5`; modelis MLflow 3
-  skiltyje „Logged models“ (susietas su run'u).
+  klasės, pagrindinė), `accuracy` ir `eval/*` (iš `eval.py`); `eval.py` artefaktai `eval/feature_importances.json`
+  (požymių svarba) ir `eval/confusion_matrix.json` (klaidų matrica); tag'ai `git_commit`, `dvc_raw_md5`, seniems
+  run'ams `split=random`; modelis MLflow 3 skiltyje „Logged models“ (susietas su run'u).
 - `dvc metrics show`: dabartinės metrikos; `dvc metrics diff <commit>`, `dvc params diff <commit>`: palyginimas su
   ankstesniu eksperimentu.
 - `docs/image-sizes.md`, `docs/security-scan.md`: vaizdo dydis ir Trivy rezultatai.
@@ -169,9 +177,9 @@ hiperparametrai į `params.yaml` → `dvc repro --force` → palygina metrikas, 
 `reproduces=<run_id>` → grąžina repo į pradinę šaką. Pavyzdys (`rf-n100-d5`):
 
 ```
-accuracy: original=0.7184 reproduced=0.7184 delta=0.0000
-f1: original=0.6058 reproduced=0.6058 delta=0.0000
-REPRODUCED in 15s -> new run 2bece1a9d32348c3b5f568730ece235c
+accuracy: original=0.7121 reproduced=0.7121 delta=0.0000
+f1: original=0.5947 reproduced=0.5947 delta=0.0000
+REPRODUCED in 20s -> new run 4fbc102c1ee841c181489d5ba145deca
 ```
 
 Naujame klasteryje atkurkite savo run'ą: autoriaus run'ų jame nėra.
@@ -197,8 +205,8 @@ bash scripts/publish.sh
 - `--network host` veikia Linux'e; kitur `-e MLFLOW_TRACKING_URI=http://host.docker.internal:5000`.
 - `scripts/publish.sh` (reikia `gh` ir `trivy`): CRITICAL vartas, prisijungimas prie GHCR su `gh` token'u, push ir
   digest. Naujas GHCR paketas būna privatus: viešu jį padaro GitHub → Packages → Package settings.
-- Publikuota: `ghcr.io/lukasja111/mlops-u1/train:sha-0a26641f`, digest
-  `sha256:74fbf9921a9e6c76ab8c86170d1991c24db62ca24e44ced6fef351ed9b81ea8a`; rootfs 449,63 MB; Trivy CRITICAL 0 /
+- Publikuota: `ghcr.io/lukasja111/mlops-u1/train:sha-71249941`, digest
+  `sha256:14ef4686875870348bc74afe4609db8e497fd6e34429749b66e95b6c45c23ab3`; rootfs 449,63 MB; Trivy CRITICAL 0 /
   HIGH 44 (visi Debian, pataisų dar nėra); vykdomas kaip uid 1000. Išsamiau `docs/image-sizes.md`,
   `docs/security-scan.md`.
 
@@ -210,11 +218,26 @@ kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
 kubectl -n mlops-u1 logs job/train
 ```
 
-- Job'as paleidžia viešą GHCR vaizdą `sha-0a26641f`, todėl nieko kurti ar įkelti į kind nereikia.
+- Job'as paleidžia viešą GHCR vaizdą `sha-71249941`, todėl nieko kurti ar įkelti į kind nereikia. Tag'as yra
+  commit'as, iš kurio vaizdas sukurtas, o ne dabartinis HEAD: manifestas negali nurodyti commit'o, kuriame pats
+  įrašytas. Naujam vaizdui: sukurti ir publikuoti (žr. „Docker vaizdas“), tada pakeisti `image:`
+  `k8s/jobs/job-train.yaml`.
 - MLflow pasiekiamas per `http://mlflow:5000` (ConfigMap); todėl MLflow paleistas su `--allowed-hosts`, kitaip
   atsakytų `403 Invalid Host header`.
+- Hiperparametrai `N_ESTIMATORS` ir `MAX_DEPTH` yra ConfigMap `training-config`; Job'as juos perduoda `train.py`
+  argumentais. ConfigMap skaitomas paleidžiant Pod'ą, todėl pakeitimas galioja kitam Job'ui:
+
+  ```bash
+  sed -i 's/MAX_DEPTH: "15"/MAX_DEPTH: "10"/' k8s/jobs/configmap-training.yaml
+  kubectl apply -f k8s/jobs/configmap-training.yaml
+  kubectl -n mlops-u1 delete job train && kubectl apply -f k8s/jobs/job-train.yaml
+  kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
+  ```
+
 - Job'ai nekeičiami: pakartotinai paleisti `kubectl -n mlops-u1 delete job train` ir vėl tas pats `apply`.
-- Išbandyta: Job'as baigėsi per 29 s (kartu su vaizdo atsisiuntimu); run'as `f57ff3c2` su `git_commit=0a26641f`.
+- Išbandyta: run'as `bb5f031f` su `git_commit=71249941` davė tas pačias metrikas kaip `dvc repro` (0,7764 / 0,6298),
+  o su `MAX_DEPTH: "10"` run'as `64eda7cc` — kaip gylio 10 run'as (0,7440 / 0,6181). Vaizdas atsisiųstas per 2,2 s;
+  Job'as su jau atsisiųstu vaizdu baigėsi per 20 s.
 
 ## Problemų sprendimas
 

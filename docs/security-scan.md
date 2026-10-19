@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Vaizdas | `mlops-u1/train:sha-0a26641f` |
-| Image ID | `sha256:4fbf02538b4fbaa211188f794a2eeb65f96d6e09b9fa9f14704890effeb68ccc` |
+| Vaizdas | `mlops-u1/train:sha-71249941` |
+| Image ID | `sha256:568a3f036f1918d3d20921ad9b11da25cd3be9da7893d4bcebc4c18fe3bf922d` |
 | Data | 2026-10-19 |
 | Trivy | 0.72.0 |
 | OS | Debian 13.7 |
