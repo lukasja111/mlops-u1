@@ -1,6 +1,6 @@
 # Airbnb Superhost klasifikatorius: reikalavimai
 
-**Versija:** 1.4
+**Versija:** 1.5
 **Data:** 2026-10-20
 **Autoriai(-ius):** Lukas Jasiulionis (lukasja111)
 
@@ -103,4 +103,5 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 | 1.1 | 2026-10-19 | lukasja111 | Reprodukcijos, atsekamumo ir duomenų versijos NFR; visos reikšmės išmatuotos klasterio run'uose |
 | 1.2 | 2026-10-19 | lukasja111 | Mokymo vaizdo NFR: dydis, Trivy, ne root |
 | 1.3 | 2026-10-19 | lukasja111 | Rastas ir ištaisytas nutekėjimas tarp imčių (tas pats skelbimas abiejose); naujas padalijimo NFR; reikšmės išmatuotos iš naujo |
-| 1.4 | 2026-10-20 | lukasja111 | Sutrumpinta; padalijimo NFR pervadintas NFR-01a (saugo NFR-01); NFR-03 matuojamas run'o trukme; vaizdo NFR sunumeruoti iš eilės |
+| 1.4 | 2026-10-19 | lukasja111 | Sutrumpinta; padalijimo NFR pervadintas NFR-01a (saugo NFR-01); NFR-03 matuojamas run'o trukme |
+| 1.5 | 2026-10-20 | lukasja111 | Dokumenų redakacijos prieš pridavimą, bugų ieškojimas |

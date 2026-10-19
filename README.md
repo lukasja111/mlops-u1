@@ -14,7 +14,7 @@ ir Job'as.
 |---|---|
 | MLflow UI ir API | http://127.0.0.1:5000: kompiuterio 5000 → kind NodePort 30500 → Service `mlflow:5000`. Prisijungimo nėra (E1 nedarytas), todėl kind klausosi tik `127.0.0.1` |
 | Postgres | tik klasterio viduje, `postgres:5432`; naudotojas ir slaptažodis Secret `postgres-credentials` (3 žingsnis) |
-| Rezultatai | MLflow eksperimentas `airbnb-superhost`; paskutinio run'o testo metrikos `metrics.json`; KPI ir išmatuotos reikšmės [`docs/requirements.md`](docs/requirements.md) v1.4 (5 žingsnis) |
+| Rezultatai | MLflow eksperimentas `airbnb-superhost`; paskutinio run'o testo metrikos `metrics.json`; KPI ir išmatuotos reikšmės [`docs/requirements.md`](docs/requirements.md) v1.5 (5 žingsnis) |
 | Duomenys | 20 CSV iš Hugging Face `kraina/airbnb` (fiksuota revizija), rodyklė `data/raw.dvc`; DVC remote `localremote` yra autoriaus kompiuterio katalogas (2 žingsnis) |
 | Mokymo vaizdas | `ghcr.io/lukasja111/mlops-u1/train:sha-71249941` (viešas); dydis, digest ir Trivy: [`docs/image-sizes.md`](docs/image-sizes.md), [`docs/security-scan.md`](docs/security-scan.md) (8 žingsnis) |
 | Mokymas klasteryje (E2) | Job `train` ir ConfigMap `training-config` (`k8s/jobs/`, 9 žingsnis) |
@@ -165,13 +165,14 @@ run'o.
 time python reproduce.py <run_id>
 ```
 
-Reikia švaraus darbo medžio (`git status`), nes pabaigoje skriptas daro `git checkout --force` ir necommit'inti
-pakeitimai dingtų. `<run_id>` yra 4 žingsnio išvestyje arba MLflow UI (`models/run_id.txt` rodo tik paskutinį).
-Naujame klasteryje autoriaus run'ų nėra, todėl atkurkite savo.
+Skriptas nepasileidžia su necommit'intais pakeitimais ar be šakos (detached HEAD), nes pabaigoje daro
+`git checkout --force` ir tokie pakeitimai dingtų. `<run_id>` yra 4 žingsnio išvestyje arba MLflow UI
+(`models/run_id.txt` rodo tik paskutinį). Naujame klasteryje autoriaus run'ų nėra, todėl atkurkite savo.
 
 Skriptas iš MLflow paima run'o `git_commit` ir hiperparametrus, daro `git checkout` į tą commit'ą ir `dvc checkout`
-žalių duomenų, įrašo hiperparametrus į `params.yaml`, paleidžia `dvc repro --force`, palygina `accuracy` ir `f1`
-(leidžiamas skirtumas 0,005), naujam run'ui uždeda tag'ą `reproduces=<run_id>` ir grąžina šaką. Pavyzdys (`rf-n100-d5`):
+žalių duomenų (jų md5 turi sutapti su run'o `dvc_raw_md5` tag'u), įrašo hiperparametrus į `params.yaml`, paleidžia
+`dvc repro --force`, palygina `accuracy` ir `f1` (leidžiamas skirtumas 0,005), naujam run'ui uždeda tag'ą
+`reproduces=<run_id>` ir grąžina šaką. Pavyzdys (`rf-n100-d5`):
 
 ```
 accuracy: original=0.7121 reproduced=0.7121 delta=0.0000
