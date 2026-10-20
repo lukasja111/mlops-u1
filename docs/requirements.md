@@ -68,7 +68,7 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 ### 3.2 Konteinerizacijos NFR (v1.2)
 | ID | Kategorija | Reikalavimas | Metrika/KPI |
 |---|---|---|---|
-| NFR-11 | Dydis | Mokymo vaizdas kuo mažesnis | rootfs ≤ 500 MB (`du --apparent-size`, MB = 1 000 000 B; `docs/image-sizes.md`). Išmatuota: 449,63 MB (`sha-71249941`) |
+| NFR-11 | Dydis | Mokymo vaizdas kuo mažesnis | rootfs ≤ 500 MB (`du --apparent-size`, MB = 1 000 000 B; `docs/image-sizes.md`). Išmatuota: 449,68 MB (`sha-08fbb275`) |
 | NFR-12 | Saugumas | 0 CRITICAL pažeidžiamumų prieš publikavimą | `trivy image --scanners vuln --severity CRITICAL --exit-code 1` grąžina 0; HIGH aptarti `docs/security-scan.md`. Išmatuota: CRITICAL 0, HIGH 44 (8 Debian CVE be pataisų) |
 | NFR-13 | Saugumas | Konteineris vykdomas ne root | UID ≠ 0; tikrinama `docker run --rm --entrypoint id <vaizdas> -u`. Išmatuota: uid 1000 (`mluser`) |
 
@@ -105,4 +105,4 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 | 1.3 | 2026-10-19 | lukasja111 | Rastas ir ištaisytas nutekėjimas tarp imčių (tas pats skelbimas abiejose); naujas padalijimo NFR; reikšmės išmatuotos iš naujo |
 | 1.4 | 2026-10-19 | lukasja111 | Sutrumpinta; padalijimo NFR pervadintas NFR-01a (saugo NFR-01); NFR-03 matuojamas run'o trukme |
 | 1.5 | 2026-10-20 | lukasja111 | Dokumentų redakcijos prieš pridavimą, bugų ieškojimas |
-| 1.6 | 2026-10-20 | lukasja111 | Naujas seed 133707331 padalijimui ir modeliui; visos reikšmės išmatuotos iš naujo |
+| 1.6 | 2026-10-20 | lukasja111 | Naujas seed 133707331 padalijimui ir modeliui; visos reikšmės išmatuotos iš naujo; vaizdas perpublikuotas kaip `sha-08fbb275` |

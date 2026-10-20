@@ -7,7 +7,7 @@
 - **R2:** DVC pipeline'as `prepare → train → evaluate`, `params.yaml`, commit'intas `dvc.lock`, lokalus DVC remote;
   3 run'ai klasterio MLflow (`max_depth` 5 / 10 / 15) su požymių svarba ir klaidų matrica; `reproduce.py` atkūrė
   run'ą per 22 s, Δ = 0.
-- **R3:** viešas vaizdas `ghcr.io/lukasja111/mlops-u1/train:sha-71249941`: rootfs 449,63 MB, Trivy CRITICAL 0 /
+- **R3:** viešas vaizdas `ghcr.io/lukasja111/mlops-u1/train:sha-08fbb275`: rootfs 449,68 MB, Trivy CRITICAL 0 /
   HIGH 44, uid 1000, SBOM.
 - **R4:** kind klasteris, namespace `mlops-u1`, PostgreSQL ir MLflow su PVC per `127.0.0.1:5000`; run'ai išliko
   perkūrus Pod'us; DB slaptažodis ne procesų argumentuose.

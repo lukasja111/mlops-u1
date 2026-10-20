@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Vaizdas | `mlops-u1/train:sha-71249941` |
-| Image ID | `sha256:568a3f036f1918d3d20921ad9b11da25cd3be9da7893d4bcebc4c18fe3bf922d` |
-| Data | 2026-10-19 |
+| Vaizdas | `mlops-u1/train:sha-08fbb275` |
+| Image ID | `sha256:90451178305a95902082369da089650c8b139b54286aa274ddd212d055a505d8` |
+| Data | 2026-10-20 |
 | Trivy | 0.72.0 |
 | OS | Debian 13.7 |
 | Pilna ataskaita | [`trivy-train.json`](trivy-train.json) |

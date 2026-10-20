@@ -148,7 +148,7 @@ REPRODUCED in 22s -> new run 1f02d0d1274447bd8e22231e5aac62e4
 Publikuotas vaizdas pasileidžia be build'o ir log'ina run'ą į klasterio MLflow:
 
 ```bash
-docker run --rm --network host -e MLFLOW_TRACKING_URI=http://127.0.0.1:5000 ghcr.io/lukasja111/mlops-u1/train:sha-71249941
+docker run --rm --network host -e MLFLOW_TRACKING_URI=http://127.0.0.1:5000 ghcr.io/lukasja111/mlops-u1/train:sha-08fbb275
 ```
 
 Toliau einančios komandos sukuria savą vaizdą, jį išbando, nuskenuoja su Trivy, sugeneruoja SBOM ir publikuoja į GHCR.
@@ -174,7 +174,7 @@ kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
 kubectl -n mlops-u1 logs job/train
 ```
 
-Job'as traukia viešą GHCR vaizdą `sha-71249941`, todėl į kind nieko kelti nereikia. Jo run'o `git_commit` yra vaizdo
+Job'as traukia viešą GHCR vaizdą `sha-08fbb275`, todėl į kind nieko kelti nereikia. Jo run'o `git_commit` yra vaizdo
 commit'as, ne HEAD: savam vaizdui atlikite 8 žingsnį ir pakeiskite `image:` faile `k8s/jobs/job-train.yaml`. ConfigMap
 `training-config` duoda Job'ui MLflow adresą `http://mlflow:5000` ir hiperparametrus `N_ESTIMATORS`, `MAX_DEPTH`. Jis
 skaitomas tik paleidžiant Pod'ą, o sukurto Job'o keisti negalima, todėl kitam gyliui reikia naujo Job'o:

@@ -16,7 +16,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: train
-          image: ghcr.io/lukasja111/mlops-u1/train:sha-71249941
+          image: ghcr.io/lukasja111/mlops-u1/train:sha-08fbb275
           imagePullPolicy: IfNotPresent
           args: ["python", "src/train.py", "--n_estimators=$(N_ESTIMATORS)", "--max_depth=$(MAX_DEPTH)"]
           envFrom:
