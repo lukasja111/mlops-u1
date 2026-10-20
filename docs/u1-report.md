@@ -3,24 +3,24 @@
 ## Kas padaryta
 
 - **R1:** repo struktūra (`src/`, `docker/`, `k8s/`, `docs/`), README su paleidimu nuo nulio, `docs/requirements.md`
-  v1.5: 5 FR ir 14 NFR su KPI ir išmatuotomis reikšmėmis.
+  v1.6: 5 FR ir 14 NFR su KPI ir išmatuotomis reikšmėmis.
 - **R2:** DVC pipeline'as `prepare → train → evaluate`, `params.yaml`, commit'intas `dvc.lock`, lokalus DVC remote;
   3 run'ai klasterio MLflow (`max_depth` 5 / 10 / 15) su požymių svarba ir klaidų matrica; `reproduce.py` atkūrė
-  run'ą per 20 s, Δ = 0.
+  run'ą per 22 s, Δ = 0.
 - **R3:** viešas vaizdas `ghcr.io/lukasja111/mlops-u1/train:sha-71249941`: rootfs 449,63 MB, Trivy CRITICAL 0 /
   HIGH 44, uid 1000, SBOM.
 - **R4:** kind klasteris, namespace `mlops-u1`, PostgreSQL ir MLflow su PVC per `127.0.0.1:5000`; run'ai išliko
   perkūrus Pod'us; DB slaptažodis ne procesų argumentuose.
-- **E2:** mokymas kaip Kubernetes Job su GHCR vaizdu, hiperparametrai per ConfigMap; metrikos sutampa su `dvc repro`.
+- **E2:** mokymas kaip Kubernetes Job su GHCR vaizdu, hiperparametrai per ConfigMap; metrikos sutampa su to paties commit'o `dvc repro` run'u.
 
 ## Kas neveikė / ką teko spręsti
 
 1. **Duomenų nutekėjimas:** tas pats skelbimas yra ir darbo dienų, ir savaitgalio faile, todėl atsitiktinis
    padalijimas 64,5 % testinių eilučių paliko dvynį mokymo imtyje, ir gylio 15 F1 0,7197 buvo išpūstas. Dabar
-   skaidoma pagal vietą (`StratifiedGroupKFold`, NFR-01a): F1 0,6298, KPI tenkina tik gylis 15; seni run'ai
+   skaidoma pagal vietą (`StratifiedGroupKFold`, NFR-01a): F1 0,6298 (su dabartiniu seed 133707331: 0,6393), KPI tenkina tik gylis 15; seni run'ai
    pažymėti `split=random`.
-2. **Žemas F1:** Superhost tik 25,6 %, todėl gylis 5 be klasių svorių davė F1 0,227; `class_weight="balanced"`
-   pakėlė jį iki 0,595 ir 0,630 (gylis 5 ir 15).
+2. **Žemas F1:** Superhost tik 25,6 %, todėl gylis 5 be klasių svorių davė F1 0,300; `class_weight="balanced"`
+   pakėlė jį iki 0,594 ir 0,639 (gylis 5 ir 15).
 3. **Kurso `train.py` su RandomForest lūžta** (skops `UntrustedTypesFoundException`): pridėta
    `skops_trusted_types=["sklearn.tree._tree.Tree"]`.
 4. **MLflow serveris netilpo į 2 GiB** (kurso komanda: 18 procesų, 2,2 GB): `requests` 2560Mi, `limits` 3Gi.

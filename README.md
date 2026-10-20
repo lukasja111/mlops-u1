@@ -135,12 +135,12 @@ uždeda tag'ą `reproduces=<run_id>` ir grąžina šaką.
 Skriptas nepasileidžia su necommit'intais pakeitimais ar be šakos (detached HEAD), nes pabaigoje daro
 `git checkout --force` ir tokie pakeitimai dingtų. `<run_id>` yra 4 žingsnio išvestyje arba MLflow UI
 (`models/run_id.txt` rodo tik paskutinį). Naujame klasteryje autoriaus run'ų nėra, todėl atkurkite savo. Pavyzdys su
-`rf-n100-d5`:
+`rf-n100-d15`:
 
 ```
-accuracy: original=0.7121 reproduced=0.7121 delta=0.0000
-f1: original=0.5947 reproduced=0.5947 delta=0.0000
-REPRODUCED in 20s -> new run 5c045194b72d415c9b06b03ee03191d7
+accuracy: original=0.7833 reproduced=0.7833 delta=0.0000
+f1: original=0.6393 reproduced=0.6393 delta=0.0000
+REPRODUCED in 22s -> new run 1f02d0d1274447bd8e22231e5aac62e4
 ```
 
 ### 8. Mokymo Docker vaizdas
