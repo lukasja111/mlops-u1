@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data/raw"
 OUT_DIR = ROOT / "data/processed"
 N_SPLITS = 5
-SEED = 42
+SEED = 133707331
 
 
 def main() -> None:

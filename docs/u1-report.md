@@ -32,4 +32,4 @@
 
 ## Kiek laiko užtruko
 
-~7 val.
+~8 val.

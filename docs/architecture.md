@@ -1,9 +1,13 @@
 # Architektūra
 
 -> DVC pipeline'as veikia lokaliai.
+
 -> MLflow serveris su Postgres ir artefaktų PVC veikia lokaliame `kind`klasteryje.
+
 -> Duomenis versijuoja DVC. 
+
 -> Kiekvienas mokymas sukuria MLflow run'ą klasteryje, o run'o tag'ai `git_commit` ir `dvc_raw_md5` susieja jį su `dvc.lock`.
+
 -> `data_prep.py` skaido imtis pagal skelbimo vietą, kad tas pats skelbimas nepatektų ir į mokymo, ir į testinę imtį.
 
 ```mermaid

@@ -30,7 +30,3 @@ pagal kurį vėliau galima tikrinti naujus CVE be vaizdo atsisiuntimo.
 | CVE-2025-69720 | ncurses: `libncursesw6`, `libtinfo6`, `ncurses-base`, `ncurses-bin` | nėra | Terminalo biblioteka; Job'as veikia be TTY | Priimta |
 | CVE-2026-16742 | `libsystemd0`, `libudev1` | nėra | Pažeidžiamas `systemd-homed`, kurio vaizde nėra (yra tik bibliotekos) | Priimta |
 | CVE-2026-9538 | `perl-base` (Archive::Tar) | nėra (Debian: fix deferred) | DoS apdorojant tar archyvus; vaizdas jų neapdoroja | Priimta |
-
-Pilnas `mlflow` 3.15.2 vaizde pridėtų du Python HIGH: CVE-2026-69247 (`cryptography` 49.0.0) ir CVE-2026-71211 (`mlflow`
-AI Gateway serverio funkcija). Vaizdas diegia `mlflow-skinny`, todėl `cryptography` yra 50.0.2 (pataisyta), o serverio
-paketo nėra. Pilnas `mlflow==3.15.2` lieka kūrėjo aplinkoje ir klasterio serveryje, pasiekiamuose tik per `127.0.0.1`.
