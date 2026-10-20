@@ -1,11 +1,10 @@
 # Architektūra
 
-DVC pipeline'as veikia kūrėjo kompiuteryje, o MLflow serveris (su PostgreSQL ir artefaktų PVC): lokaliame
-kind klasteryje. Žali duomenys (20 CSV iš fiksuotos HF revizijos) versijuojami DVC. Kiekvienas mokymas sukuria
-MLflow run'ą klasteryje; `dvc.lock` ir run'o `git_commit` / `dvc_raw_md5` tag'ai juos susieja. `data_prep.py`
-skaido imtis pagal skelbimo vietą, kad tas pats skelbimas nepatektų ir į mokymo, ir į testinę imtį.
-Punktyriniai mazgai „U2“ ir „Komandinis projektas“ (registras, inferencijos API, stebėsena) dar neįgyvendinti: tai
-modelio ciklas ir stebėsenos kilpa, kurie ateis vėlesnėse užduotyse.
+-> DVC pipeline'as veikia lokaliai.
+-> MLflow serveris su Postgres ir artefaktų PVC veikia lokaliame `kind`klasteryje.
+-> Duomenis versijuoja DVC. 
+-> Kiekvienas mokymas sukuria MLflow run'ą klasteryje, o run'o tag'ai `git_commit` ir `dvc_raw_md5` susieja jį su `dvc.lock`.
+-> `data_prep.py` skaido imtis pagal skelbimo vietą, kad tas pats skelbimas nepatektų ir į mokymo, ir į testinę imtį.
 
 ```mermaid
 flowchart LR
