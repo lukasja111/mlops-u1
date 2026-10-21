@@ -11,4 +11,4 @@ gh auth token | docker login ghcr.io -u "$OWNER" --password-stdin
 docker tag "$LOCAL" "$REMOTE"
 docker push "$REMOTE"
 echo "digest: $(docker inspect --format '{{index .RepoDigests 0}}' "$REMOTE")"
-echo "Then make the package public: GitHub -> Packages -> mlops-u1/train -> Package settings -> Public"
+echo "Make the package public via GitHub: GitHub -> Packages -> mlops-u1/train -> Package settings -> Public"

@@ -1,7 +1,7 @@
 # Docker vaizdo dydis
 
-MB = 1 000 000 baitų. **Rootfs**: išpakuotų failų dydis (`du -sx --apparent-size --block-size=1 /`, tas pats metodas
-kaip kurso `scripts/week3.py sizes`). Docker `.Size` priklauso nuo image store (čia `overlay2`, nesuspaustas turinys),
+MB = 1 000 000 baitų.
+**Rootfs**: išpakuotų failų dydis (`du -sx --apparent-size --block-size=1 /`, tas pats metodas kaip kurso `scripts/week3.py sizes`). Docker `.Size` priklauso nuo image store (čia `overlay2`, nesuspaustas turinys),
 todėl su rootfs jo nepainioti.
 
 | Vaizdas | Image ID | Platforma | Bazė | Docker .Size MB | Rootfs MB |

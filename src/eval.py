@@ -8,42 +8,51 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precisio
 
 ROOT = Path(__file__).resolve().parents[1]
 
-
 def main() -> None:
     model = joblib.load(ROOT / "models/model.pkl")
     test = pd.read_csv(ROOT / "data/processed/test.csv")
+
     x, y = test.drop("target", axis=1), test["target"]
     preds = model.predict(x)
+
     metrics = {
         "accuracy": accuracy_score(y, preds),
         "f1": f1_score(y, preds),
         "precision": precision_score(y, preds),
         "recall": recall_score(y, preds),
     }
+
+    # METRIC OUTPUT FILE
     (ROOT / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
     print(json.dumps(metrics, indent=2))
 
+    # RUN ID FILE
     run_id_file = ROOT / "models/run_id.txt"
     if run_id_file.exists():
         try:
             run_id = run_id_file.read_text().strip()
             client = mlflow.MlflowClient()
+
             for key, value in metrics.items():
                 client.log_metric(run_id, f"eval/{key}", value)
+
+            # FEATURE IMPORTANCE
             importances = zip(x.columns, model.feature_importances_.round(4).tolist())
             client.log_dict(
                 run_id,
                 dict(sorted(importances, key=lambda kv: kv[1], reverse=True)),
                 "eval/feature_importances.json",
             )
+
+            # CONFUSION MATRIX
             client.log_dict(
                 run_id,
                 {"labels": [0, 1], "matrix": confusion_matrix(y, preds).tolist()},
                 "eval/confusion_matrix.json",
             )
+
         except Exception as exc:
             print(f"warning: eval metrics not attached to the training run ({exc})")
-
 
 if __name__ == "__main__":
     main()

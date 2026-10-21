@@ -7,16 +7,24 @@
 ## 1. Apimtis
 
 ### 1.1 Problema
-Prognozuoti, ar Airbnb skelbimo šeimininkas turi Superhost statusą, pagal skelbimo požymius (kaina, kambario
-tipas, talpa, įvertinimai, atstumai, vietos indeksai, miestas, dienų tipas). Duomenys: HF `kraina/airbnb`
-(fiksuota revizija `b9dd71fc`, CC BY 4.0), 10 Europos miestų, 51 707 įrašai apie 30 125 vietas, iš jų 25,6 %
-Superhost. Klasės nesubalansuotos, todėl pagrindinė metrika yra F1 (Superhost klasė).
+Prognozuoti, ar Airbnb skelbimo šeimininkas, pagal `kraina/airbnb` naujausius duomenis, turi Superhost statusą, pagal skelbimo požymius: 
+- kaina 
+- kambario tipas 
+- talpa
+- įvertinimai
+- atstumai
+- vietos indeksai
+- miestas
+- dienų tipas
+
+Fiksuota revizija `b9dd71fc`, CC BY 4.0, 10 Europos miestų, 51 707 įrašai apie 30 125 vietas, iš jų 25,6% Superhost. 
+Klasės nesubalansuotos, todėl pagrindinė metrika yra F1 (**Superhost klasė**).
 
 ### 1.2 Suinteresuotosios šalys
 | Šalis | Interesas |
 |---|---|
-| ML inžinierius (studentas) | Greitai kartoti eksperimentus ir atkurti bet kurį run'ą |
-| Vertintojas (dėstytojas) | Paleisti sistemą pagal README, matyti ≥3 run'us klasterio MLflow |
+| ML inžinierius (Studentas) | Greitai kartoti eksperimentus ir atkurti bet kurį run'ą |
+| Vertintojas (Dėstytojas) | Paleisti sistemą pagal README, matyti ≥3 run'us klasterio MLflow |
 | Šeimininkai / platforma | Suprasti, kurie požymiai susiję su Superhost statusu (`eval/feature_importances.json`) |
 | U2 / komandinis projektas | Tas pats MLflow serveris modelių registrui |
 
@@ -75,13 +83,11 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 ## 4. KPI
 - **Modelio:** F1 (Superhost) pagrindinė; accuracy lyginama su 0,744; precision ir recall informacinės.
 - **Sistemos:** mokymo trukmė, MLflow pasiekiamumas, run'ų išlikimas perkūrus Pod'us.
-- **Proceso:** 100 % run'ų su `git_commit` ir `dvc_raw_md5`.
+- **Proceso:** 100% run'ų su `git_commit` ir `dvc_raw_md5`.
 
 ## 5. Prielaidos
-- Skelbimo ID rinkinyje nėra, todėl skelbimas atpažįstamas pagal vietą (`city`, `lat`, `lng`). Jis būna ir darbo
-  dienų, ir savaitgalio faile, todėl imtys skaidomos pagal vietą (NFR-01a).
-- F1 ribotas: Superhost statusas priklauso ir nuo duomenyse nesančių veiksnių (viešnagės, atšaukimai, atsakymų
-  dažnis).
+- Skelbimo ID rinkinyje nėra, todėl skelbimas atpažįstamas pagal vietą (`city`, `lat`, `lng`). Jis būna ir darbo dienų, ir savaitgalio faile, todėl imtys skaidomos pagal vietą (NFR-01a).
+- F1 ribotas: Superhost statusas priklauso ir nuo duomenyse nesančių veiksnių (viešnagės, atšaukimai, atsakymų dažnis).
 - Vieno mazgo kind klasteris kūrėjo kompiuteryje, be GPU.
 - MLflow klientas ir serveris 3.15.2; autentifikacijos nėra, todėl serveris pasiekiamas tik per localhost.
 - NFR-13 taikomas mokymo vaizdui (vieninteliam savam). MLflow ir Postgres Pod'ai naudoja oficialius vaizdus su jų

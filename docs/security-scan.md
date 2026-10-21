@@ -10,9 +10,8 @@
 | Pilna ataskaita | [`trivy-train.json`](trivy-train.json) |
 | SBOM | [`sbom-train.json`](sbom-train.json) (SPDX 2.3, 146 paketai) |
 
-Komandos yra README 8 žingsnyje („Mokymo Docker vaizdas“). CRITICAL vartas (`--severity CRITICAL --exit-code 1`) kartojamas ir
-`scripts/publish.sh` pradžioje, todėl vaizdas su CRITICAL radiniu nepublikuojamas. SBOM yra visų vaizdo paketų sąrašas,
-pagal kurį vėliau galima tikrinti naujus CVE be vaizdo atsisiuntimo.
+Komandos yra README 8 žingsnyje („Mokymo Docker vaizdas“).
+CRITICAL vartas (`--severity CRITICAL --exit-code 1`) kartojamas ir `scripts/publish.sh` pradžioje, todėl vaizdas su CRITICAL radiniu nepublikuojamas. SBOM yra visų vaizdo paketų sąrašas, pagal kurį vėliau galima tikrinti naujus CVE be vaizdo atsisiuntimo.
 
 ## Rezultatas
 
