@@ -95,18 +95,19 @@ Kodo pakeitimus (`src/`) commit'inkite prieš `dvc repro`: run'o `git_commit` ta
 
 ```sh
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+sed -i 's/max_depth: 15/max_depth: 5/' params.yaml
 dvc repro --force
-git commit -am "run: max_depth 15"
+git commit -am "max_depth 5 run"
 
-sed -i 's/max_depth: 15/max_depth: 10/' params.yaml
+sed -i 's/max_depth: 5/max_depth: 10/' params.yaml
 dvc status
 dvc repro
 dvc params diff && dvc metrics diff
-git commit -am "run: max_depth 10"
+git commit -am "max_depth 10 run"
 
-sed -i 's/max_depth: 10/max_depth: 5/' params.yaml
+sed -i 's/max_depth: 10/max_depth: 15/' params.yaml
 dvc repro
-git commit -am "run: max_depth 5"
+git commit -am "max_depth 15 run"
 ```
 
 `dvc status` rodo pasikeitusį `train` parametrą. `dvc repro` iš naujo paleidžia tik `train` ir `evaluate`, nes `prepare` nuo `params.yaml` nepriklauso; `dvc.lock` pasikeičia `train` parametro reikšmė ir `model.pkl`, `run_id.txt`, `metrics.json` md5.
@@ -116,6 +117,7 @@ Jei turite savo DVC remote (`dvc remote modify --local localremote url /jusu/kat
 
 - MLflow UI (http://127.0.0.1:5000), eksperimentas `airbnb-superhost`, run'ai vadinasi `rf-n<n_estimators>-d<max_depth>`. Pagrindinė metrika `f1`, šalia `accuracy`, `eval/*`, artefaktai, modelis ir tag'ai.
 - Terminale metrikas rodo `dvc metrics show`; su ankstesniu commit'u palygina `dvc metrics diff <commit>` ir `dvc params diff <commit>`.
+- KPI ir išmatuotos reikšmės: `docs/requirements.md`.
 - Imtys nesidalija skelbimais (NFR-01a), komanda turi išvesti `0`:
 
 ```sh
