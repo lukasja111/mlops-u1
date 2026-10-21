@@ -1,7 +1,10 @@
+Repo URL: <https://github.com/lukasja111/mlops-u1>
+Tag: `u1-final`
+Paleidimas: Žemiau pateiktos instrukcijos.
+
 # Airbnb hostų klasifikatorius į superhostus: U1 MLOps projekto paleidimo instrukcijos
 Išbandyta Linux sistemose (CachyOS (su ir be [nix](https://nixos.org/download/#nix)) bei NixOS 26.05)
 
-- Repo: <https://github.com/lukasja111/mlops-u1>, pateikimo tag'as `u1-final`; paleidimas nuo nulio aprašytas žemiau (0 iki 8 žingsniai).
 - Portai: MLflow http://127.0.0.1:5000 (kind NodePort 30500, tik `127.0.0.1`); Postgres tik klasterio viduje, `postgres:5432`.
 - Prisijungimai: MLflow be prisijungimo; Postgres naudotojas ir slaptažodis Secret `postgres-credentials` (3 žingsnis).
 - Rezultatai: MLflow eksperimentas `airbnb-superhost`, `metrics.json`, KPI `docs/requirements.md` (5 žingsnis).
