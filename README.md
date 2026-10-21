@@ -30,16 +30,20 @@ Išbandyta Linux sistemose (CachyOS (su ir be [nix](https://nixos.org/download/#
 > Rekomenduojama naudoti [nix](https://nixos.org/download/#nix) lengvesniam ir sklandžiam darbui aplinkoje.
 
 ### 0.A Reikalavimų instaliacija su Nix package manageriu
-Su Nix viską, išskyrus Docker, duoda `shell.nix`; `nix-shell` kartu atidaro `bash`. Venv (1 žingsnis) kurkite ir naudokite `nix-shell` viduje, kitaip Python wheel'ams trūks `libstdc++`.
+Su Nix viską, išskyrus Docker, duoda `shell.nix`; `nix-shell` kartu atidaro `bash`. Venv (1 žingsnis) kurkite ir naudokite `nix-shell` viduje, kitaip Python wheel'ams trūks `libstdc++`. Tokiu atveju, po žemiau paminėto 1. etapo, atkloninus repozitoriją ir nuėjus į ją runninkit `nix-shell`.
 ```bash
 nix-shell
 ```
+
+> [!NOTE]
+> Jei Nix įdiegtas be nixpkgs kanalo (pvz. Arch `nix` paketas), `nix-shell` išveda `error: file 'nixpkgs' was not found in the Nix search path` ir `uses bash from your environment`.
+> Tai tik jo paties `bash` paieška: `shell.nix` aplinka vis tiek užkraunama, tik su sistemos `bash`. Klaidos ignoruokite ir tęskite.
 
 ### 0.B Reikalavimų instaliacija su Pacman package manageriu
 Arch-based sistemoms, ant Debian/Ubuntu sistemų, priklausomai nuo package manageriu gali atrodyti kitaip.
 
 ```sh
-sudo pacman -S --needed docker docker-buildx kind kubectl uv
+sudo pacman -S --needed docker docker-buildx kind kubectl uv trivy github-cli
 ```
 
 ### 1. Repo, įrankiai ir Python aplinka
@@ -164,9 +168,13 @@ docker run --rm --network host -e MLFLOW_TRACKING_URI=http://127.0.0.1:5000 mlop
 trivy image --scanners vuln --severity HIGH,CRITICAL --format json --output docs/trivy-train.json mlops-u1/train:sha-$SHA
 trivy image --scanners vuln --severity CRITICAL --exit-code 1 mlops-u1/train:sha-$SHA
 trivy image -f spdx-json -o docs/sbom-train.json mlops-u1/train:sha-$SHA
-bash scripts/publish.sh
 ```
 
+> [!WARNING]
+> Paleidžiam žemiau einanačia komandą tik kai esame užtikrinti, jog norime publishinti, kitu atveju komanda gali būti nenaudojama kai veiksmas vyksta vien lokaliai.
+> ```sh
+> bash scripts/publish.sh
+> ```
 ### 8. Mokymas kaip Kubernetes Job
 
 Job'as traukia viešą GHCR vaizdą `sha-08fbb275`, todėl jo run'o `git_commit` yra vaizdo commit'as, ne HEAD (savam vaizdui atlikite 7 žingsnį ir pakeiskite `image:` faile `k8s/jobs/job-train.yaml`). ConfigMap `training-config` duoda Job'ui MLflow adresą `http://mlflow:5000` ir hiperparametrus `N_ESTIMATORS`, `MAX_DEPTH`.
@@ -198,6 +206,7 @@ PVC išlieka perkūrus Pod'us, bet dingsta kartu su klasteriu. Po kompiuterio pe
 
 | Klaida | Priežastis ir sprendimas |
 |---|---|
+| `nix-shell`: `file 'nixpkgs' was not found in the Nix search path` | Nix be kanalo: `nix-shell` taip ieško tik savo `bash`, nerandęs naudoja sistemos `bash` (`uses bash from your environment`) ir veikia toliau; `shell.nix` nixpkgs turi savo |
 | `permission denied while trying to connect to the Docker daemon socket` | Naudotojas ne `docker` grupėje: `sudo usermod -aG docker $USER`, tada atsijunkite ir vėl prisijunkite |
 | `dvc: command not found`, `ModuleNotFoundError` arba `.venv/bin/activate: Permission denied` | Neaktyvuotas venv arba failas paleistas kaip programa: `source .venv/bin/activate` (be `sudo`) |
 | `MLFLOW_TRACKING_URI wasn't set properly` | Kintamasis nenustatytas šiame terminale: `export MLFLOW_TRACKING_URI=http://127.0.0.1:5000` |
