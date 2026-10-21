@@ -12,22 +12,25 @@ Išbandyta Linux sistemose (CachyOS (su ir be [nix](https://nixos.org/download/#
 
 | Software | Versija |
 |---|---|
+| git, curl | bet kokia |
+| bash arba zsh | bet kokia |
 | Docker | 29.8.1 |
 | [kind](https://kind.sigs.k8s.io/) | 0.31.0 (reikia ≥ 0.31) |
 | kubectl | 1.36.3 |
 | Python | 3.12.14 |
 | DVC | 3.67.1 (diegiamas su `requirements.txt`) |
 | [Trivy](https://trivy.dev/), [gh](https://cli.github.com/) | 0.72.0, 2.102.0 (tik 7 žingsniui) |
-| git, curl | bet kokia |
+
 
 
 ## Paleidimas nuo nulio.
-> [!TIP]
+> [!WARNING]
+> Komandos atliekamos nuo nulio naudojant `bash` arba `zsh` *visais atvejais*.
 > Žemiau surašytos komandos tinkamos CachyOS ar daugeliui kitų *Arch-based* distribucijų. Jei naudojate pvz. Ubuntu, Debian, gali skirtis reikalavimų atsisiuntimo procesas.
 > Rekomenduojama naudoti [nix](https://nixos.org/download/#nix) lengvesniam ir sklandžiam darbui aplinkoje.
 
 ### 0.A Reikalavimų instaliacija su Nix package manageriu
-Su Nix viską, išskyrus Docker, duoda `shell.nix`. Venv (1 žingsnis) kurkite ir naudokite `nix-shell` viduje, kitaip Python wheel'ams trūks `libstdc++`.
+Su Nix viską, išskyrus Docker, duoda `shell.nix`; `nix-shell` kartu atidaro `bash`. Venv (1 žingsnis) kurkite ir naudokite `nix-shell` viduje, kitaip Python wheel'ams trūks `libstdc++`.
 ```bash
 nix-shell
 ```
