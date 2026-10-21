@@ -170,11 +170,14 @@ trivy image --scanners vuln --severity CRITICAL --exit-code 1 mlops-u1/train:sha
 trivy image -f spdx-json -o docs/sbom-train.json mlops-u1/train:sha-$SHA
 ```
 
+Trivy perrašo `docs/trivy-train.json` ir `docs/sbom-train.json`: savam vaizdui juos commit'inkite, kitaip grąžinkite `git checkout -- docs/`.
+
 > [!WARNING]
-> Paleidžiam žemiau einanačia komandą tik kai esame užtikrinti, jog norime publishinti, kitu atveju komanda gali būti nenaudojama kai veiksmas vyksta vien lokaliai.
+> Paleidžiam žemiau einančią komandą tik kai esame užtikrinti, jog norime publishinti, kitu atveju komanda gali būti nenaudojama kai veiksmas vyksta vien lokaliai.
 > ```sh
 > bash scripts/publish.sh
 > ```
+
 ### 8. Mokymas kaip Kubernetes Job
 
 Job'as traukia viešą GHCR vaizdą `sha-08fbb275`, todėl jo run'o `git_commit` yra vaizdo commit'as, ne HEAD (savam vaizdui atlikite 7 žingsnį ir pakeiskite `image:` faile `k8s/jobs/job-train.yaml`). ConfigMap `training-config` duoda Job'ui MLflow adresą `http://mlflow:5000` ir hiperparametrus `N_ESTIMATORS`, `MAX_DEPTH`.
@@ -185,13 +188,14 @@ kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
 kubectl -n mlops-u1 logs job/train
 ```
 
-Sukurto Job'o keisti negalima, todėl kitam gyliui reikia naujo Job'o. Su `MAX_DEPTH: "10"` run'as duoda tas pačias metrikas kaip gylio 10 `dvc repro` run'as:
+Sukurto Job'o keisti negalima, todėl kitam gyliui reikia naujo Job'o. Su `MAX_DEPTH: "10"` run'as duoda tas pačias metrikas kaip gylio 10 `dvc repro` run'as; paskutinė komanda grąžina failą į gylį 15:
 
 ```sh
 sed -i 's/MAX_DEPTH: "15"/MAX_DEPTH: "10"/' k8s/jobs/configmap-training.yaml
 kubectl apply -f k8s/jobs/configmap-training.yaml
 kubectl -n mlops-u1 delete job train && kubectl apply -f k8s/jobs/job-train.yaml
 kubectl -n mlops-u1 wait --for=condition=complete job/train --timeout=600s
+git checkout -- k8s/jobs/configmap-training.yaml
 ```
 
 ## Išvalymas

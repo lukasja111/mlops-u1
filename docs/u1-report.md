@@ -3,7 +3,7 @@
 ## Kas padaryta
 
 - **R1:** repo struktūra (`src/`, `docker/`, `k8s/`, `docs/`), README su paleidimu nuo nulio, `docs/requirements.md`
-  v1.7: 5 FR ir 14 NFR su KPI ir išmatuotomis reikšmėmis.
+  v1.8: 5 FR ir 14 NFR su KPI ir išmatuotomis reikšmėmis.
 - **R2:** DVC pipeline'as `prepare → train → evaluate`, `params.yaml`, commit'intas `dvc.lock`, lokalus DVC remote;
   3 run'ai klasterio MLflow (`max_depth` 5 / 10 / 15) su požymių svarba ir klaidų matrica; `reproduce.py` atkūrė
   run'ą per 22 s, Δ = 0.

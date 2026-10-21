@@ -1,6 +1,6 @@
 # Airbnb Superhost klasifikatorius: reikalavimai
 
-**Versija:** 1.7
+**Versija:** 1.8
 **Data:** 2026-10-21
 **Autoriai(-ius):** Lukas Jasiulionis (lukasja111)
 
@@ -58,8 +58,8 @@ Skelbimo ID rinkinyje nėra, todėl skelbimas atpažįstamas pagal vietą (`city
 | NFR-06 | Saugumas | Jokių paslapčių Git repozitorijoje | 0 slaptažodžių ir token'ų (`git grep -i password`); prisijungimai tik K8s Secret | 0 (tik Secret raktų pavadinimai) |
 | NFR-07 | Privatumas | Jokių asmenį identifikuojančių duomenų | nėra šeimininkų vardų ar ID; žali duomenys ne Git (`git ls-files data/`) | tik `data/.gitignore` ir `data/raw.dvc` |
 | NFR-08 | Atkartojamumas | Istorinis run'as atkuriamas `python reproduce.py <run_id>` | ≤ 2 min; \|Δaccuracy\| ir \|Δf1\| ≤ 0,005 | 22 s, abu Δ = 0,0000 (`cb0eac03` atkurtas kaip `1f02d0d1`) |
-| NFR-09 | Atsekamumas | Kiekvienas run'as turi `git_commit` ir `dvc_raw_md5` tag'us | 100 % run'ų | 18/18 |
-| NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5`, 100 % run'ų | `a2b156db…` sutampa 18/18 |
+| NFR-09 | Atsekamumas | Kiekvienas run'as turi `git_commit` ir `dvc_raw_md5` tag'us | 100 % run'ų | 21/21 |
+| NFR-10 | Duomenų versija | Mokymo duomenų versija fiksuota DVC | `dvc.lock` `data/raw` md5 = run'o `dvc_raw_md5`, 100 % run'ų | `a2b156db…` sutampa 21/21 |
 | NFR-11 | Dydis | Mokymo vaizdas kuo mažesnis | rootfs ≤ 500 MB (`docs/docker-image.md`) | 449,68 MB (`sha-08fbb275`) |
 | NFR-12 | Saugumas | 0 CRITICAL pažeidžiamumų prieš publikavimą | `trivy image --scanners vuln --severity CRITICAL --exit-code 1` grąžina 0; HIGH aptarti `docs/docker-image.md` | CRITICAL 0, HIGH 44 (8 Debian CVE be pataisų) |
 | NFR-13 | Saugumas | Mokymo konteineris vykdomas ne root | UID ≠ 0 (`docker run --rm --entrypoint id <vaizdas> -u`); MLflow ir Postgres naudoja oficialius vaizdus ir pasiekiami tik per `127.0.0.1` (NFR-05) | uid 1000 (`mluser`) |
@@ -78,3 +78,4 @@ Gylio 15 F1 tik 0,02 virš NFR-01 slenksčio: hiperparametrai nerenkami pagal te
 | 1.5 | 2026-10-20 | lukasja111 | Dokumentų redakcijos prieš pridavimą, bugų ieškojimas |
 | 1.6 | 2026-10-20 | lukasja111 | Naujas seed 133707331 padalijimui ir modeliui; visos reikšmės išmatuotos iš naujo; vaizdas perpublikuotas kaip `sha-08fbb275` |
 | 1.7 | 2026-10-21 | lukasja111 | Sutrumpinta: NFR vienoje lentelėje, KPI ir išmatuotos reikšmės atskiruose stulpeliuose, KPI, prielaidų ir rizikų skyriai įlieti; NFR-01a patikra perkelta į README; `docs/image-sizes.md` ir `docs/security-scan.md` sujungti į `docs/docker-image.md` |
+| 1.8 | 2026-10-21 | lukasja111 | Galutinė versija prieš `u1-final`: `dvc.lock` atnaujintas po `src/` komentarų, NFR-09 ir NFR-10 išmatuota iš naujo (21/21); README patikrintas nuo nulio NixOS ir CachyOS (su Nix ir be) |
