@@ -16,12 +16,20 @@ spec:
         runAsUser: 1000
       containers:
         - name: train
-          image: ghcr.io/lukasja111/mlops-u1/train:sha-08fbb275
+          image: mlops-u1/train:dev
           imagePullPolicy: IfNotPresent
-          args: ["python", "src/train.py", "--n_estimators=$(N_ESTIMATORS)", "--max_depth=$(MAX_DEPTH)"]
+          args:
+            - python
+            - src/train.py
+            - --n_trials=$(N_TRIALS)
+            - --n_estimators=$(N_ESTIMATORS)
+            - --max_depth=$(MAX_DEPTH)
+            - --min_samples_leaf=$(MIN_SAMPLES_LEAF)
           envFrom:
             - configMapRef:
                 name: training-config
+            - secretRef:
+                name: mlflow-trainer-credentials
           resources:
             requests: {cpu: 500m, memory: 512Mi}
             limits: {cpu: "2", memory: 1Gi}

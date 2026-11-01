@@ -6,5 +6,7 @@ metadata:
 data:
   MLFLOW_TRACKING_URI: http://mlflow:5000
   MLFLOW_EXPERIMENT_NAME: airbnb-superhost
+  N_TRIALS: "0"
   N_ESTIMATORS: "100"
   MAX_DEPTH: "15"
+  MIN_SAMPLES_LEAF: "1"
