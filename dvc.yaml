@@ -14,7 +14,8 @@ stages:
       - data/processed/train.csv
       - data/processed/test.csv
     params:
-      - params.yaml:
+      - train
+      - hpo
     outs:
       - models/model.pkl
       - models/run_id.txt:

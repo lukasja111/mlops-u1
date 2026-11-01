@@ -7,12 +7,16 @@ from pathlib import Path
 import joblib
 import mlflow
 import mlflow.sklearn
+import optuna
 import pandas as pd
 import yaml
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import StratifiedGroupKFold
 
 ROOT = Path(__file__).resolve().parents[1]
+SEARCH = ("n_estimators", "max_depth", "min_samples_leaf")
+
 
 # Local git_commit image build arg
 def git_commit() -> str:
@@ -31,6 +35,46 @@ def dvc_md5(dvc_file: Path) -> str:
     except Exception:
         return "untracked"
 
+def forest(params: dict) -> RandomForestClassifier:
+    return RandomForestClassifier(
+        n_estimators=params["n_estimators"],
+        max_depth=params["max_depth"],
+        min_samples_leaf=params["min_samples_leaf"],
+        random_state=params["random_seed"],
+        class_weight="balanced",
+        n_jobs=-1,
+    )
+
+# HPO: grouped CV on the training set only, one nested run per trial
+def search(params: dict, hpo: dict, x: pd.DataFrame, y: pd.Series) -> dict:
+    groups = x.groupby(["lat", "lng"]).ngroup()
+    cv = StratifiedGroupKFold(n_splits=hpo["cv_folds"], shuffle=True, random_state=params["random_seed"])
+    folds = list(cv.split(x, y, groups))
+    best = 0.0
+
+    def objective(trial: optuna.Trial) -> float:
+        nonlocal best
+        candidate = {**params, **{key: trial.suggest_int(key, *hpo[key]) for key in SEARCH}}
+        with mlflow.start_run(run_name=f"trial-{trial.number:02d}", nested=True):
+            mlflow.log_params({key: candidate[key] for key in SEARCH})
+            scores = []
+            for step, (fit_idx, val_idx) in enumerate(folds):
+                model = forest(candidate).fit(x.iloc[fit_idx], y.iloc[fit_idx])
+                scores.append(f1_score(y.iloc[val_idx], model.predict(x.iloc[val_idx])))
+                mlflow.log_metric("fold_f1", scores[-1], step=step)
+            cv_f1 = sum(scores) / len(scores)
+            mlflow.log_metric("cv_f1", cv_f1)
+        best = max(best, cv_f1)
+        mlflow.log_metric("trial_cv_f1", cv_f1, step=trial.number)
+        mlflow.log_metric("best_cv_f1", best, step=trial.number)
+        return cv_f1
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=params["random_seed"]))
+    study.enqueue_trial({key: params[key] for key in SEARCH})
+    study.optimize(objective, n_trials=hpo["n_trials"])
+    return study.best_params
+
 def main() -> None:
 
     # Missing URI check
@@ -38,17 +82,22 @@ def main() -> None:
         sys.exit("MLFLOW_TRACKING_URI wasn't set properly. Point it at the cluster MLflow (e.g. http://127.0.0.1:5000)")
 
     # PARAMETERS
-    params = yaml.safe_load((ROOT / "params.yaml").read_text())["train"]
+    config = yaml.safe_load((ROOT / "params.yaml").read_text())
+    params, hpo = config["train"], config["hpo"]
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n_estimators", type=int)
-    parser.add_argument("--max_depth", type=int)
-    parser.add_argument("--random_seed", type=int)
-    for key, value in vars(parser.parse_args()).items():
+    for key in (*SEARCH, "random_seed", "n_trials"):
+        parser.add_argument(f"--{key}", type=int)
+    args = vars(parser.parse_args())
+    n_trials = args.pop("n_trials")
+    if n_trials is not None:
+        hpo["n_trials"] = n_trials
+    for key, value in args.items():
         if value is not None:
             params[key] = value
 
     # Logging
     mlflow.set_experiment(os.environ.get("MLFLOW_EXPERIMENT_NAME", "airbnb-superhost"))
+    mlflow.set_system_metrics_sampling_interval(1)
 
     # Data loading
     train = pd.read_csv(ROOT / "data/processed/train.csv")
@@ -56,33 +105,34 @@ def main() -> None:
     x_train, y_train = train.drop("target", axis=1), train["target"]
     x_test, y_test = test.drop("target", axis=1), test["target"]
 
+    tuned = hpo["n_trials"] > 0
+    run_name = f"rf-hpo{hpo['n_trials']}" if tuned else f"rf-n{params['n_estimators']}-d{params['max_depth']}"
 
-    run_name = f"rf-n{params['n_estimators']}-d{params['max_depth']}"
-
-    with mlflow.start_run(run_name=run_name) as run:
-        mlflow.log_params(params)
+    with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
         mlflow.set_tags({
             "git_commit": git_commit(),
             "dvc_raw_md5": dvc_md5(ROOT / "data/raw.dvc"),
             "model_family": "RandomForestClassifier",
+            "seed": str(params["random_seed"]),
         })
 
         mlflow.log_input(
-            mlflow.data.from_pandas(
-                train, source="data/processed/train.csv", targets="target", name="train"
-            ),
+            mlflow.data.from_pandas(train, source="data/processed/train.csv", targets="target", name="train"),
             context="training",
         )
-
-        model = RandomForestClassifier(
-            n_estimators=params["n_estimators"],
-            max_depth=params["max_depth"],
-            random_state=params["random_seed"],
-            class_weight="balanced",
+        mlflow.log_input(
+            mlflow.data.from_pandas(test, source="data/processed/test.csv", targets="target", name="test"),
+            context="evaluation",
         )
-        model.fit(x_train, y_train)
 
-        # Quick-check
+        if tuned:
+            mlflow.log_params({f"hpo.{key}": value for key, value in hpo.items()})
+            params.update(search(params, hpo, x_train, y_train))
+        mlflow.log_params(params)
+
+        model = forest(params).fit(x_train, y_train)
+
+        # Quick-check, the test set is touched once
         preds = model.predict(x_test)
         acc = accuracy_score(y_test, preds)
         f1 = f1_score(y_test, preds)
@@ -93,13 +143,15 @@ def main() -> None:
             input_example=x_train.head(3),
             skops_trusted_types=["sklearn.tree._tree.Tree"],
         )
+        mlflow.set_tag("model_id", info.model_id)
         mlflow.log_metric("accuracy", acc, model_id=info.model_id)
         mlflow.log_metric("f1", f1, model_id=info.model_id)
 
         os.makedirs(ROOT / "models", exist_ok=True)
         joblib.dump(model, ROOT / "models/model.pkl")
+        mlflow.log_metric("model_size_mb", (ROOT / "models/model.pkl").stat().st_size / 1e6)
         (ROOT / "models/run_id.txt").write_text(run.info.run_id + "\n")
-        print(f"run_id={run.info.run_id} model_id={info.model_id} accuracy={acc:.4f} f1={f1:.4f}")
+        print(f"run_id={run.info.run_id} model_id={info.model_id} params={params} accuracy={acc:.4f} f1={f1:.4f}")
 
 if __name__ == "__main__":
     main()

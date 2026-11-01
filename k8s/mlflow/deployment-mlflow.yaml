@@ -17,6 +17,21 @@ spec:
       labels:
         app: mlflow
     spec:
+      initContainers:
+        - name: auth-db-upgrade
+          image: ghcr.io/mlflow/mlflow:v3.15.2-full
+          command: ["python", "-m", "mlflow.server.auth", "db", "upgrade"]
+          args: ["--url=postgresql://$(POSTGRES_USER)@postgres:5432/$(POSTGRES_DB)"]
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: postgres-credentials, key: POSTGRES_USER}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: {name: postgres-credentials, key: POSTGRES_PASSWORD}
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef: {name: postgres-credentials, key: POSTGRES_DB}
       containers:
         - name: mlflow
           image: ghcr.io/mlflow/mlflow:v3.15.2-full
@@ -28,6 +43,7 @@ spec:
             - --host=0.0.0.0
             - --port=5000
             - --allowed-hosts=localhost:*,127.0.0.1:*,host.docker.internal:*,mlflow:5000,mlflow.mlops-u1.svc:5000
+            - --app-name=basic-auth
           ports:
             - containerPort: 5000
           env:
@@ -40,9 +56,17 @@ spec:
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef: {name: postgres-credentials, key: POSTGRES_DB}
+            - name: MLFLOW_AUTH_CONFIG_PATH
+              value: /etc/mlflow-auth/basic_auth.ini
+            - name: MLFLOW_FLASK_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: mlflow-auth, key: flask-secret-key}
           volumeMounts:
             - name: artifacts
               mountPath: /mlartifacts
+            - name: auth-config
+              mountPath: /etc/mlflow-auth
+              readOnly: true
           readinessProbe:
             httpGet: {path: /health, port: 5000}
             initialDelaySeconds: 10
@@ -59,3 +83,9 @@ spec:
         - name: artifacts
           persistentVolumeClaim:
             claimName: mlflow-artifacts
+        - name: auth-config
+          secret:
+            secretName: mlflow-auth
+            items:
+              - key: basic_auth.ini
+                path: basic_auth.ini

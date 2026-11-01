@@ -10,7 +10,6 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 PARAMS = ROOT / "params.yaml"
 RAW_DVC = ROOT / "data/raw.dvc"
-TRAIN_KEYS = ("n_estimators", "max_depth", "random_seed")
 METRICS = ("accuracy", "f1")
 
 
@@ -51,8 +50,11 @@ def main() -> None:
             sys.exit(f"data/raw.dvc at {commit} is {md5}, the run was trained on {original.data.tags.get('dvc_raw_md5')}")
 
         cfg = yaml.safe_load(PARAMS.read_text())
-        for key in TRAIN_KEYS:
-            cfg["train"][key] = int(original.data.params[key])
+        for key, value in cfg["train"].items():
+            if key in original.data.params:
+                cfg["train"][key] = type(value)(original.data.params[key])
+        if "hpo" in cfg:
+            cfg["hpo"]["n_trials"] = 0
         PARAMS.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
         sh("dvc", "repro", "--force")
