@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
 
@@ -7,6 +8,17 @@ RAW_DIR = ROOT / "data/raw"
 OUT_DIR = ROOT / "data/processed"
 N_SPLITS = 5
 SEED = 133707331
+
+# Encoding
+def one_hot(df: pd.DataFrame) -> pd.DataFrame:
+    df = pd.get_dummies(df, columns=["room_type", "city", "day_type"], dtype=int)
+    return df.astype({"room_shared": int, "room_private": int})
+
+# 4/5 training. 1/5 testing, grouped by listing
+def split(df: pd.DataFrame, groups: pd.Series) -> tuple[pd.DataFrame, pd.DataFrame]:
+    folds = StratifiedGroupKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
+    train_idx, test_idx = next(folds.split(df, df["target"], groups=groups))
+    return df.iloc[train_idx], df.iloc[test_idx]
 
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -22,15 +34,7 @@ def main() -> None:
 
     listing = df.groupby(["city", "lat", "lng"]).ngroup()
 
-    # Encoding
-    df = pd.get_dummies(df, columns=["room_type", "city", "day_type"], dtype=int)
-    df = df.astype({"room_shared": int, "room_private": int})
-
-    split = StratifiedGroupKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
-
-    # 4/5 training. 1/5 testing
-    train_idx, test_idx = next(split.split(df, df["target"], groups=listing))
-    train, test = df.iloc[train_idx], df.iloc[test_idx]
+    train, test = split(one_hot(df), listing)
     train.to_csv(OUT_DIR / "train.csv", index=False)
     test.to_csv(OUT_DIR / "test.csv", index=False)
     print(f"Train: {len(train)}, Test: {len(test)}")

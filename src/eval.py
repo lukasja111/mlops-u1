@@ -4,7 +4,13 @@ from pathlib import Path
 import joblib
 import mlflow
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
