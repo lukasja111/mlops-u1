@@ -2,23 +2,21 @@
 
 ## Kas padaryta
 
-- **R1:** `dvc repro` paleidžia Optuna paiešką: 20 bandymų, kiekvienas vertinamas 5 grupių kryžmine validacija mokymo
-  imtyje ir yra įdėtinis run'as (`trial-00` ... `trial-19`) su `fold_f1` per žingsnius. Tėvinis run'as `rf-hpo20`:
-  parametrai, `best_cv_f1` per žingsnius, 8 sistemos metrikos, `log_input` (train ir test su digest'u), tag'ai
-  `git_commit`, `dvc_raw_md5`, `seed`, modelis su aplinka. v3: `n_estimators` 105, `max_depth` 14,
-  `min_samples_leaf` 1; F1 0,6370, accuracy 0,7766, 157 s.
-- **R2:** registras `airbnb-superhost`: v1 (U1 konfigūracija), v2 (HPO, 3 grupės), v3 (HPO, 5 grupės), kiekviena su
-  tag'ais `git_commit`, `dvc_raw_md5`, `accuracy`, `f1`, `gate=passed`. API įkelia
-  `models:/airbnb-superhost@champion`, `/health` rodo versiją ir run'ą.
-- **R3:** Job `train` iš `mlops-u1/train:sha-ca7ea995`: hiperparametrai ConfigMap `training-config`, prisijungimas
-  Secret `mlflow-trainer-credentials`; `Completed` per 30 s, run'o `git_commit` `ca7ea995` (accuracy 0,7833, F1 0,6393).
-- **R4:** FastAPI (`src/serve.py`) Deployment su 2 replikomis, probes ir `preStop`, NodePort Service 30800; `/health`
-  ir `/predict` (klasė, tikimybė, versija). Apkrovos testas: p95 20,3 ms, 94,1 užklausų/s.
-- **R5:** `.github/workflows/ci-cd.yml`: `lint` ir `test`, `model-gate`, `build` su Trivy. GitHub'e nevykdytas (žr.
-  „Nedaryta“); tie patys žingsniai vyksta lokaliai: README 7 žingsnis ir `scripts/cd.sh`.
-- **R6:** `scripts/cd.sh`: testai → `dvc repro` → vartas (`metrics.json` ≥ `params.yaml` `gate`) → registracija ir
-  `@champion` → `MODEL_VERSION` manifeste → `kubectl apply -k` → smoke testas. Rollback: `scripts/cd.sh rollback`.
-- **R7:** `docs/requirements.md` v1.9: FR-06 iki FR-10, inferencijos NFR-14 iki NFR-21 su išmatuotomis reikšmėmis.
+- **R1:** Optuna: 20 bandymų (įdėtiniai run'ai `trial-00` ... `trial-19`), 5 grupių kryžminė validacija mokymo imtyje,
+  `fold_f1` per žingsnius. Tėvinis `rf-hpo20`: parametrai, `best_cv_f1` per žingsnius, 8 sistemos metrikos, `log_input`
+  (train ir test su digest'u), tag'ai `git_commit`, `dvc_raw_md5`, `seed`, modelis su aplinka. v3: `n_estimators` 105,
+  `max_depth` 14, `min_samples_leaf` 1; F1 0,6370, accuracy 0,7766.
+- **R2:** registras `airbnb-superhost`: v1 (U1 konfigūracija), v2 (HPO, 3 grupės), v3 (HPO, 5 grupės); tag'ai
+  `git_commit`, `dvc_raw_md5`, `accuracy`, `f1`, `gate=passed`. API įkelia `models:/airbnb-superhost@champion`,
+  `/health` rodo versiją ir run'ą.
+- **R3:** Job `train` iš `mlops-u1/train:sha-ca7ea995`, ConfigMap `training-config`, Secret
+  `mlflow-trainer-credentials`; `Completed` per 30 s, `git_commit` `ca7ea995`, accuracy 0,7833, F1 0,6393.
+- **R4:** FastAPI `src/serve.py`: Deployment (2 replikos, probes, `preStop`), NodePort Service 30800, `/health` ir
+  `/predict`.
+- **R5:** `.github/workflows/ci-cd.yml` (`lint`, `test`, `model-gate`, `build` su Trivy) GitHub'e nevykdytas (žr.
+  „Nedaryta“); lokaliai: README 7 žingsnis ir `scripts/cd.sh`.
+- **R6:** `scripts/cd.sh` su kokybės vartu ir `scripts/cd.sh rollback` (žr. „Architektūra“).
+- **R7:** `docs/requirements.md` v1.9: FR-06 iki FR-10, inferencijos NFR-14 iki NFR-21 išmatuoti.
 
 ## Architektūra
 
@@ -88,29 +86,18 @@ smoke ok: version 3, image sha-ca7ea995
 
 ## Kas neveikė / ką teko spręsti
 
-1. **Užklausos krisdavo keičiant Pod'us:** `rollout status` grįžta, kol paskutinis senas Pod'as dar stabdomas, ir į jį
-   patekusi užklausa atmetama (28 iš 1 827 keičiant vaizdą). `preStop` 5 s pauzė (Kubernetes `sleep` veiksmas) leidžia
-   Service pirma išimti Pod'ą: rollback'uose 1 ir 0, o rollback'as nepailgėjo.
-2. **Pasenęs vaizdo sluoksnis:** Docker kešas paliko 11-01 `apt-get upgrade` sluoksnį, todėl 4 HIGH radiniai (apt
-   RCE ir du zlib) turėjo pataisas. Su `docker build --no-cache`: HIGH 51 → 47, pataisomų 0.
-3. **MLflow su prisijungimais:** `basic-auth` reikia savo DB lentelių (`mlflow.server.auth db upgrade`
-   initContainer'yje), ini failo iš Secret ir Flask rakto; naudotojai kuriami per admin API. Su
-   `default_permission = READ` eksperimento ar modelio kūrėjas gauna MANAGE, kiti tik skaito.
-4. **Sistemos metrikos:** `log_system_metrics=True` be `psutil` meta klaidą net su pilnu `mlflow`, todėl `psutil`
-   įrašytas į reikalavimus.
-5. **Registracija:** MLflow 3 `runs:/<id>/model` randa LoggedModel tik su įspėjimu, todėl registruojama
-   `models:/<model_id>`. `search_model_versions` grąžina versijas be alias'ų, alias'ai skaitomi
-   `get_model_version_by_alias`.
-6. **Raudono paleidimo atstatymas:** blogas modelis perrašo `dvc.lock`, `metrics.json`, `models/run_id.txt` ir
-   `model.pkl`, todėl žalias rezultatas commit'inamas prieš raudoną, o atstatoma `git checkout` ir `dvc checkout`.
-7. **`ruff` 0.17** pagal nutylėjimą įjungia I ir BLE taisykles: `select` užfiksuotas `pyproject.toml`, kad lint
-   nepriklausytų nuo versijos.
+1. **Užklausos krisdavo keičiant Pod'us:** `rollout status` grįžta, kol paskutinis senas Pod'as dar stabdomas ir atmeta
+   užklausas (28 iš 1 827 keičiant vaizdą). `preStop` 5 s (Kubernetes `sleep` veiksmas) leidžia Service pirma išimti
+   Pod'ą: rollback'uose 1 ir 0, trukmė nepailgėjo.
+2. **Pasenęs vaizdo sluoksnis:** Docker kešas paliko 11-01 `apt-get upgrade` sluoksnį su 4 pataisomais HIGH (apt RCE,
+   du zlib); `docker build --no-cache`: HIGH 51 → 47, pataisomų 0.
+3. **Atstatymas po raudono:** blogas modelis perrašo `dvc.lock`, `metrics.json`, `models/run_id.txt` ir `model.pkl`:
+   žalias commit'inamas prieš raudoną, atstatoma `git checkout`, `dvc checkout`.
 
 ## Nedaryta
 
-- **U2-R5 GitHub dalis:** workflow parašytas, bet GitHub Actions nevykdytas, vaizdai GHCR nepublikuoti. Autoriaus
-  sprendimas U2 nekelti į jokį nuotolinį repo: pateikiamas lokalus tag'as `u2-final` (ZIP su `git bundle`). Tie patys
-  žingsniai (lint, testai, vartas, build, Trivy) vykdomi lokaliai, žalias ir raudonas paleidimas parodyti su
-  `scripts/cd.sh`.
-- **E5** (Argo CD) reikalauja Git remote, kurio U2 neturi; **E1** neatliktas, nes kompiuteryje tik AMD GPU; **E3**
-  dėl laiko.
+- **U2-R5 GitHub dalis:** GitHub Actions nevykdytas, vaizdai GHCR nepublikuoti: autoriaus sprendimu U2 nekeliamas į jokį
+  nuotolinį repo, pateikiamas lokalus tag'as `u2-final` (ZIP su `git bundle`). Lint, testai, vartas, build ir Trivy
+  vyksta lokaliai, žalias ir raudonas su `scripts/cd.sh`.
+- **E5** (Argo CD) reikalauja Git remote, kurio U2 neturi; **E1** neatliktas, nes kompiuteryje tik AMD GPU; **E2**
+  (Prefect), **E3** ir **E4** (ONNX) dėl laiko.
