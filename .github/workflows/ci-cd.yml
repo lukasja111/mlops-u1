@@ -1,0 +1,108 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - k8s/**
+      - docs/**
+      - "**.md"
+      - dvc.lock
+      - metrics.json
+      - models/run_id.txt
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install "$(grep ^ruff== requirements-dev.txt)"
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest
+
+  model-gate:
+    needs: [lint, test]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Raw data at the pinned revision
+        run: |
+          curl -fsSL --retry 3 --create-dirs -o "data/raw/#1_#2.csv" \
+            "https://huggingface.co/datasets/kraina/airbnb/resolve/b9dd71fc8f175b645ce47f87c702492a6128c4dd/data/{amsterdam,athens,barcelona,berlin,budapest,lisbon,london,paris,rome,vienna}_{weekdays,weekends}.csv"
+          dvc commit -f data/raw.dvc
+          git diff --exit-code data/raw.dvc
+      - name: Pipeline
+        run: dvc repro
+        env:
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+      - name: Quality gate
+        run: python scripts/gate.py
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: processed
+          path: data/processed/
+          overwrite: true
+
+  build:
+    needs: model-gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: processed
+          path: data/processed
+      - name: Build
+        run: |
+          echo "TAG=sha-${GITHUB_SHA::8}" >> "$GITHUB_ENV"
+          for image in api train; do
+            docker build -f "docker/Dockerfile.$image" --build-arg "GIT_COMMIT=${GITHUB_SHA::8}" \
+              -t "mlops-u1/$image:sha-${GITHUB_SHA::8}" .
+          done
+      - name: Trivy gate, api
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.74.0
+          image-ref: mlops-u1/api:${{ env.TAG }}
+          scanners: vuln
+          severity: CRITICAL
+          exit-code: "1"
+      - name: Trivy gate, train
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.74.0
+          image-ref: mlops-u1/train:${{ env.TAG }}
+          scanners: vuln
+          severity: CRITICAL
+          exit-code: "1"
