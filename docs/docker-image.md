@@ -1,5 +1,7 @@
 # Mokymo Docker vaizdas
 
+U1 publikuoto vaizdo aprašas. U2 vaizdai (`mlops-u1/api` ir `mlops-u1/train`, `sha-ca7ea995`) lokalūs, įkelti į kind: `docs/u2-report.md`, `docs/trivy-api.json`.
+
 | | |
 |---|---|
 | Vaizdas | `ghcr.io/lukasja111/mlops-u1/train:sha-08fbb275` |
@@ -28,7 +30,7 @@ Rootfs 449,68 MB, NFR-11 riba yra `500 MB`. Rootfs yra išpakuotų failų dydis 
 
 ## Trivy
 
-Skenuota 2026-10-20 su Trivy 0.72.0 (OS Debian 13.7). Komandos README 7 žingsnyje; CRITICAL vartas (`--severity CRITICAL --exit-code 1`) kartojamas ir `scripts/publish.sh`, todėl vaizdas su CRITICAL radiniu nepublikuojamas. Pilna ataskaita [`trivy-train.json`](trivy-train.json), SBOM [`sbom-train.json`](sbom-train.json) (SPDX 2.3, 146 paketai): visų vaizdo paketų sąrašas naujiems CVE tikrinti be vaizdo atsisiuntimo.
+Skenuota 2026-10-20 su Trivy 0.72.0 (OS Debian 13.7). Komandos U1 README (`u1-final`) 7 žingsnyje; CRITICAL vartas (`--severity CRITICAL --exit-code 1`) dabar stovi README 7 žingsnyje prieš `kind load`, todėl vaizdas su CRITICAL radiniu į klasterį nepatenka. Pilna ataskaita [`trivy-train.json`](trivy-train.json), SBOM [`sbom-train.json`](sbom-train.json) (SPDX 2.3, 146 paketai): visų vaizdo paketų sąrašas naujiems CVE tikrinti be vaizdo atsisiuntimo.
 
 - CRITICAL 0, HIGH 44 (8 unikalūs CVE, visi Debian paketuose, nė vienam nėra pataisytos versijos). Python paketuose radinių nėra. Vartas grąžina 0, publikuoti galima.
 - Konteineris veikia ne root: `docker run --rm --entrypoint id <vaizdas> -u` grąžina `1000`.
