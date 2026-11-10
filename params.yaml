@@ -5,7 +5,7 @@ train:
   random_seed: 133707331
 hpo:
   n_trials: 20
-  cv_folds: 3
+  cv_folds: 5
   n_estimators: [50, 200]
   max_depth: [5, 25]
   min_samples_leaf: [1, 10]
