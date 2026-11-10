@@ -1,12 +1,12 @@
 {
   "url": "http://172.18.0.2:30800",
-  "model_version": "2",
+  "model_version": "3",
   "requests": 500,
   "distinct_rows": 100,
-  "p50_ms": 14.9,
-  "p95_ms": 16.5,
-  "p99_ms": 17.4,
-  "mean_ms": 15.3,
+  "p50_ms": 14.3,
+  "p95_ms": 20.3,
+  "p99_ms": 22.4,
+  "mean_ms": 14.7,
   "concurrency": 8,
-  "rps": 91.5
+  "rps": 94.1
 }

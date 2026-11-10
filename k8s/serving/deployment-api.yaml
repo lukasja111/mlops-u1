@@ -20,7 +20,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: api
-          image: ghcr.io/lukasja111/mlops-u1/api
+          image: mlops-u1/api
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -39,6 +39,9 @@ spec:
           livenessProbe:
             httpGet: {path: /livez, port: 8000}
             periodSeconds: 10
+          lifecycle:
+            preStop:
+              sleep: {seconds: 5}
           resources:
             requests: {cpu: 250m, memory: 512Mi}
             limits: {cpu: "1", memory: 1Gi}

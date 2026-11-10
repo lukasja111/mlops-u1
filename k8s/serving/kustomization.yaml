@@ -5,13 +5,12 @@ resources:
   - deployment-api.yaml
   - service-api.yaml
 images:
-  - name: ghcr.io/lukasja111/mlops-u1/api
-    newName: mlops-u1/api
-    newTag: dev
+  - name: mlops-u1/api
+    newTag: sha-ca7ea995
 configMapGenerator:
   - name: serving-config
     literals:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MODEL_URI=models:/airbnb-superhost@champion
-      - MODEL_VERSION=2
-      - IMAGE_TAG=dev
+      - MODEL_VERSION=3
+      - IMAGE_TAG=sha-ca7ea995

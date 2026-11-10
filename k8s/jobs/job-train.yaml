@@ -16,7 +16,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: train
-          image: mlops-u1/train:dev
+          image: mlops-u1/train:sha-ca7ea995
           imagePullPolicy: IfNotPresent
           args:
             - python

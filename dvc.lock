@@ -40,7 +40,7 @@ stages:
       params.yaml:
         hpo:
           n_trials: 20
-          cv_folds: 3
+          cv_folds: 5
           n_estimators:
           - 50
           - 200
@@ -58,11 +58,11 @@ stages:
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 5dd27af91c208e0c025e921c2109f8d7
-      size: 25887737
+      md5: bb72cf1d0cce479fc907f15d0e13eceb
+      size: 31132377
     - path: models/run_id.txt
       hash: md5
-      md5: 7300f074613fba632d53b3b259b30fbe
+      md5: 362b8a7d0e5a8188c92263572ba02827
       size: 33
   evaluate:
     cmd: python src/eval.py
@@ -73,11 +73,11 @@ stages:
       size: 2097512
     - path: models/model.pkl
       hash: md5
-      md5: 5dd27af91c208e0c025e921c2109f8d7
-      size: 25887737
+      md5: bb72cf1d0cce479fc907f15d0e13eceb
+      size: 31132377
     - path: models/run_id.txt
       hash: md5
-      md5: 7300f074613fba632d53b3b259b30fbe
+      md5: 362b8a7d0e5a8188c92263572ba02827
       size: 33
     - path: src/eval.py
       hash: md5
@@ -86,5 +86,5 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: bac83cb489c75844ac59edd32640e44e
-      size: 132
+      md5: d35aaa2055096a8977114c18a989819a
+      size: 131
