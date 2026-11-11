@@ -134,8 +134,7 @@ Kodo pakeitimus (`src/`) commit'inkite prieš `dvc repro`: run'o `git_commit` ta
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
 export MLFLOW_TRACKING_USERNAME=trainer
 export MLFLOW_TRACKING_PASSWORD=$(kubectl -n mlops-u1 get secret mlflow-trainer-credentials -o jsonpath='{.data.MLFLOW_TRACKING_PASSWORD}' | base64 -d)
-dvc repro
-git commit -am "HPO run"
+dvc repro && git commit -am "HPO run"
 ```
 
 `params.yaml` skyrius `hpo`: Optuna (TPE su seed) per 20 bandymų renka `n_estimators`, `max_depth` ir `min_samples_leaf`, kiekvieną bandymą vertina 5 grupių kryžmine validacija mokymo imtyje (`StratifiedGroupKFold` pagal vietą). Tėvinis run'as `rf-hpo20`, bandymai yra įdėtiniai run'ai `trial-00` ... `trial-19`; testinė imtis naudojama tik galutiniam modeliui. NixOS mini PC (16 gijų) run'as truko 157 s.
@@ -296,6 +295,7 @@ PVC išlieka perkūrus Pod'us, bet dingsta kartu su klasteriu. Po kompiuterio pe
 | `dvc: command not found`, `ModuleNotFoundError` arba `.venv/bin/activate: Permission denied` | Neaktyvuotas venv arba failas paleistas kaip programa: `source .venv/bin/activate` (be `sudo`) |
 | `MLFLOW_TRACKING_URI wasn't set properly` | Kintamasis nenustatytas šiame terminale: `export MLFLOW_TRACKING_URI=http://127.0.0.1:5000` |
 | `MLFLOW_TRACKING_USERNAME: export the trainer credentials first` arba `failed with error code 401 != 200` (`You are not authenticated`) | Šiame terminale neeksportuoti 4 žingsnio `MLFLOW_TRACKING_USERNAME` ir `MLFLOW_TRACKING_PASSWORD` |
+| `secrets "mlflow-trainer-credentials" not found` | Nepaleistas antras 3 žingsnio blokas (naudotojai `trainer`, `serving`, `viewer` ir jų Secret'ai): paleiskite jį ir pakartokite 4 žingsnio komandas |
 | Pod'as `CreateContainerConfigError` | Trūksta Secret: MLflow `mlflow-auth`, API `mlflow-serving-credentials`, Job'as `mlflow-trainer-credentials` (3 žingsnis); kurio, rodo `kubectl -n mlops-u1 describe pod <pod>` |
 | Pod'as `ErrImagePull` arba `ImagePullBackOff` | Vaizdo nėra kind'e arba manifesto tag'as kitas: 7 žingsnis (`kind load` ir abi `sed`) |
 | `curl 127.0.0.1:5000` atmeta ryšį arba portas užimtas | Persiuntimas 5000 → 30500 nustatomas tik kuriant klasterį su `k8s/kind-config.yaml`; jei Pod'as dar neparengtas, žr. `kubectl -n mlops-u1 get pods`. Užimtą portą (macOS AirPlay) keiskite `hostPort` tame pačiame faile ir `MLFLOW_TRACKING_URI` |
