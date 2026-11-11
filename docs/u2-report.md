@@ -13,17 +13,20 @@
   `mlflow-trainer-credentials`; `Completed` per 30 s, `git_commit` `ca7ea995`, accuracy 0,7833, F1 0,6393.
 - **R4:** FastAPI `src/serve.py`: Deployment (2 replikos, probes, `preStop`), NodePort Service 30800, `/health` ir
   `/predict`.
-- **R5:** `.github/workflows/ci-cd.yml` (`lint`, `test`, `model-gate`, `build` su Trivy) GitHub'e nevykdytas (žr.
-  „Nedaryta“); lokaliai: README 7 žingsnis ir `scripts/cd.sh`.
-- **R6:** `scripts/cd.sh` su kokybės vartu ir `scripts/cd.sh rollback` (žr. „Architektūra“).
-- **R7:** `docs/requirements.md` v1.9: FR-06 iki FR-10, inferencijos NFR-14 iki NFR-21 išmatuoti.
+- **R5:** GitHub Actions `.github/workflows/ci-cd.yml`: `lint`, `test`, `model-gate`, `build` su Trivy, tada abu vaizdai
+  į GHCR. Žalias run'as `43011607138` (7 min 39 s), raudonas `43013796244` (`min_f1=0.99`: `model-gate` krito, `build`
+  nevykdytas).
+- **R6:** `scripts/ci-cd.sh` su kokybės vartu ir `scripts/ci-cd.sh rollback` (žr. „Architektūra“).
+- **R7:** `docs/requirements.md` v2.0: FR-06 iki FR-12, NFR-14 iki NFR-23 išmatuoti.
+- **E1:** `src/train_gpu.py` (PyTorch MLP, AMP, `torch.profiler`) su RTX 5070 Ti atskirame kompiuteryje, run'ai
+  klasterio MLflow per SSH tunelį. AMP: mažas tinklas 26,7 → 34,6 s, didelis 48,3 → 19,7 s (README 13 žingsnis).
 
 ## Architektūra
 
 ```
 kodo commit    → README 7: docker build api, train (sha-<commit>) → Trivy CRITICAL → kind load → tag'as manifestuose
-params commit  → scripts/cd.sh: ruff → pytest → dvc repro → gate.py → register, @champion → MODEL_VERSION → kubectl apply -k → smoke
-rollback       → scripts/cd.sh rollback: @champion ↔ @previous → MODEL_VERSION → kubectl apply -k → smoke
+params commit  → scripts/ci-cd.sh: ruff → pytest → dvc repro → gate.py → register, @champion → MODEL_VERSION → kubectl apply -k → smoke
+rollback       → scripts/ci-cd.sh rollback: @champion ↔ @benched → MODEL_VERSION → kubectl apply -k → smoke
 
 kind klasteris, namespace mlops-u1:
   postgres ← mlflow (basic-auth, 127.0.0.1:5000) ← job/train (trainer), deploy/api x2 (serving, NodePort 30800)
@@ -38,7 +41,7 @@ o smoke testas tikrina, kad abu sutampa.
 | Kas | Reikšmė |
 |---|---|
 | HPO run'as (20 bandymų po 5 grupes) | 157 s, 20 įdėtinių run'ų |
-| Žalias `cd.sh` iki smoke testo | 210 s |
+| Žalias `ci-cd.sh` iki smoke testo | 210 s |
 | Raudonas: tik slenkstis `min_f1: 0.99` | 12,2 s, išėjimo kodas 1 |
 | Raudonas: `max_depth: 5` be paieškos | 34,3 s, F1 0,5943, išėjimo kodas 1 |
 | Rollback v3 → v2, v2 → v3 | 25,8 s, 25,9 s |
@@ -50,8 +53,8 @@ o smoke testas tikrina, kad abu sutampa.
 
 ## Žalias, raudonas ir rollback
 
-Žalias (`bash scripts/cd.sh`, 210 s, išėjimo kodas 0; dar `dev` vaizdu, vėliau tas pats `cd.sh` įdiegė
-`sha-ca7ea995` ir praleido registraciją: `run already registered`):
+Žalias (`bash scripts/ci-cd.sh`, 210 s, išėjimo kodas 0; dar `dev` vaizdu, vėliau tas pats `ci-cd.sh` įdiegė
+`sha-ca7ea995` ir praleido registraciją: `run was already registered`):
 
 ```
 run_id=a12df7d9… accuracy=0.7766 f1=0.6370
@@ -74,7 +77,7 @@ FAIL: accuracy = 0.7094934261407579 (threshold >= 0.75)
 quality gate failed: nothing registered or deployed
 ```
 
-Rollback (`time bash scripts/cd.sh rollback`, du kartus): po pirmo `@champion` v2 ir `@previous` v3, po antro vėl v3
+Rollback (`time bash scripts/ci-cd.sh rollback`, du kartus): po pirmo `@champion` v2 ir `@benched` v3, po antro vėl v3
 ir v2; `/predict` atsakymo `model_version` sutampa.
 
 ```
@@ -96,8 +99,5 @@ smoke ok: version 3, image sha-ca7ea995
 
 ## Nedaryta
 
-- **U2-R5 GitHub dalis:** GitHub Actions nevykdytas, vaizdai GHCR nepublikuoti: autoriaus sprendimu U2 nekeliamas į jokį
-  nuotolinį repo, pateikiamas lokalus tag'as `u2-final` (ZIP su `git bundle`). Lint, testai, vartas, build ir Trivy
-  vyksta lokaliai, žalias ir raudonas su `scripts/cd.sh`.
-- **E5** (Argo CD) reikalauja Git remote, kurio U2 neturi; **E1** neatliktas, nes kompiuteryje tik AMD GPU; **E2**
-  (Prefect), **E3** ir **E4** (ONNX) dėl laiko.
+- **CD iš GitHub:** diegimas lieka lokalus (`scripts/ci-cd.sh`): runner'is kind klasterio nepasiekia.
+- **E2** (Prefect), **E3** (HPA), **E4** (ONNX), **E5** (Argo CD): dėl laiko.

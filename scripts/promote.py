@@ -8,53 +8,71 @@ from mlflow import MlflowClient
 from mlflow.exceptions import MlflowException
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = os.environ.get("MODEL_NAME", "airbnb-superhost")
+MODEL_NAME = os.environ.get("MODEL_NAME", "airbnb-superhost")
 
 
 def alias(client: MlflowClient, name: str) -> str | None:
     try:
-        return client.get_model_version_by_alias(NAME, name).version
+        return client.get_model_version_by_alias(MODEL_NAME, name).version
     except MlflowException:
         return None
 
-# One version per run: a rerun of the same run_id registers nothing new
 def register(client: MlflowClient, run_id: str) -> tuple[str, bool]:
-    existing = client.search_model_versions(f"name = '{NAME}' and run_id = '{run_id}'")
+
+    # Run check
+    existing = client.search_model_versions(f"name = '{MODEL_NAME}' and run_id = '{run_id}'")
     if existing:
         return existing[0].version, False
+
+
     run = client.get_run(run_id)
-    version = mlflow.register_model(f"models:/{run.data.tags['model_id']}", NAME).version
+    version = mlflow.register_model(f"models:/{run.data.tags['model_id']}", MODEL_NAME).version
+
     for key in ("git_commit", "dvc_raw_md5"):
-        client.set_model_version_tag(NAME, version, key, run.data.tags.get(key, "unknown"))
+        client.set_model_version_tag(MODEL_NAME, version, key, run.data.tags.get(key, "unknown"))
+
     for key in ("accuracy", "f1"):
-        client.set_model_version_tag(NAME, version, key, f"{run.data.metrics[key]:.4f}")
-    client.set_model_version_tag(NAME, version, "gate", "passed")
+        client.set_model_version_tag(MODEL_NAME, version, key, f"{run.data.metrics[key]:.4f}")
+
+    client.set_model_version_tag(MODEL_NAME, version, "gate", "passed")
     return version, True
 
-# @previous keeps the old champion, so a rollback has a target
+# @champion promotion
 def promote(client: MlflowClient, version: str) -> None:
     champion = alias(client, "champion")
+
     if champion == version:
         return
+
+    client.set_registered_model_alias(MODEL_NAME, "champion", version)
+
+    # benching
     if champion:
-        client.set_registered_model_alias(NAME, "previous", champion)
-    client.set_registered_model_alias(NAME, "champion", version)
+        client.set_registered_model_alias(MODEL_NAME, "benched", champion)
+
 
 def rollback(client: MlflowClient, version: str | None) -> str:
-    champion, target = alias(client, "champion"), version or alias(client, "previous")
+    champion, target = alias(client, "champion"), version or alias(client, "benched")
+
     if not target:
-        sys.exit("no rollback target: pass --version or set @previous first")
-    client.set_registered_model_alias(NAME, "champion", target)
+        sys.exit("no rollback target: pass --version or set @benched first")
+
+    # back from the bench
+    client.set_registered_model_alias(MODEL_NAME, "champion", target)
     if champion and champion != target:
-        client.set_registered_model_alias(NAME, "previous", champion)
+        client.set_registered_model_alias(MODEL_NAME, "benched", champion)
     return target
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+
+
+    # CMDs
     parser.add_argument("action", choices=["register", "promote", "rollback", "current"])
-    parser.add_argument("--run-id")
+    parser.add_argument("--run-id") # foreign run handling
     parser.add_argument("--version")
     args = parser.parse_args()
+
     client = MlflowClient()
 
     if args.action == "register":

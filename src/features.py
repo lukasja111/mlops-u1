@@ -1,7 +1,7 @@
+# Server-side encoding
+
 GROUPS = ("room_type", "city", "day_type")
 
-
-# One raw listing -> the model's columns, in the model's order
 def encode(records: list[dict], columns: list[str]) -> list[list[float]]:
     rows = []
     for record in records:

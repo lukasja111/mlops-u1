@@ -30,7 +30,7 @@ def train_run(columns: list[str], seed: int) -> str:
 
 
 def champion(client: MlflowClient) -> tuple[str | None, str | None]:
-    return promote.alias(client, "champion"), promote.alias(client, "previous")
+    return promote.alias(client, "champion"), promote.alias(client, "benched")
 
 
 def test_register_promote_rollback_and_serve(registry, columns, listings):
