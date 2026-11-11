@@ -267,15 +267,21 @@ time bash scripts/ci-cd.sh rollback
 ```
 
 ### 12. CI workflow (Paleidimai)
-- Žalias paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43080857023>
-- Raudonas paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43013796244>
+- Žalias paleidimas su diegimu: <https://github.com/lukasja111/mlops-u1/actions/runs/43086372854>
+- Raudonas paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43087804813>
 
 `.github/workflows/ci-cd.yml` pasileidžia GitHub Actions po pusho į main.
 Pasileidžia: `lint`, `test`, `model-gate`, `build`, - gale vaizdai keliami į GHCR.
+Rankinis paleidimas su `deploy=true` dar vykdo `deploy`: `scripts/ci-cd.sh` self-hosted runner'yje prie klasterio. Runner'is paleidžiamas šio repo kataloge su aktyvia `.venv` ir `MLOPS_REPO=$PWD`.
+
+Žalias paleidimas su diegimu:
+```sh
+gh workflow run ci-cd.yml -f deploy=true
+```
 
 Raudonas paleidimas:
 ```sh
-gh workflow run ci-cd.yml -f min_f1=0.99
+gh workflow run ci-cd.yml -f min_f1=0.99 -f deploy=true
 ```
 
 ### 13. GPU mokymas (E1)
@@ -310,7 +316,6 @@ Klusterio šalinimas
 ```sh
 kind delete cluster --name mlops-u1
 ```
-
 
 ## Duomenys ir licencija
 

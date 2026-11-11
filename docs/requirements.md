@@ -55,7 +55,7 @@ Skelbimo ID rinkinyje nėra, todėl skelbimas atpažįstamas pagal vietą (`city
 | FR-08 | Inferencijos API (`/health`, `/predict`) Kubernetes Deployment ir Service; modelis įkeliamas iš registro pagal `@champion`, ne iš failo | Must |
 | FR-09 | CD (`scripts/ci-cd.sh`): testai, `dvc repro`, kokybės vartas iš `params.yaml` `gate`, registracija, `MODEL_VERSION` manifeste, diegimas ir smoke testas; vartas blokuoja blogą modelį | Must |
 | FR-10 | Rollback (`scripts/ci-cd.sh rollback`) grąžina `@champion` į `@benched` ir perdiegia API | Must |
-| FR-11 | CI GitHub Actions (`.github/workflows/ci-cd.yml`) po `push` į `main`, kai keičiasi kodas ar workflow: ruff, pytest, pipeline'as su kokybės vartu, abiejų vaizdų build, Trivy CRITICAL vartas ir publikavimas į GHCR | Must |
+| FR-11 | CI GitHub Actions (`.github/workflows/ci-cd.yml`) po `push` į `main`, kai keičiasi kodas ar workflow: ruff, pytest, pipeline'as su kokybės vartu, abiejų vaizdų build, Trivy CRITICAL vartas ir publikavimas į GHCR; rankiniame paleidime su `deploy=true` dar job `deploy` (`scripts/ci-cd.sh` self-hosted runner'yje) | Must |
 | FR-12 | Mokymas GPU (`src/train_gpu.py`, PyTorch MLP) su AMP jungikliu ir `torch.profiler` lentele, log'inamas į tą patį MLflow; modelis neregistruojamas | Could |
 
 ## 3. Nefunkciniai reikalavimai
@@ -83,7 +83,7 @@ Skelbimo ID rinkinyje nėra, todėl skelbimas atpažįstamas pagal vietą (`city
 | NFR-19 | Patikimumas | Rollback į ankstesnę versiją | `scripts/ci-cd.sh rollback` iki smoke testo ≤ 60 s | 25,8 s (v3 → v2) ir 25,9 s (v2 → v3) |
 | NFR-20 | Patikimumas | API veikia keičiant versiją | 2 replikos, `readinessProbe`, `preStop` 5 s; rollback'o metu nukritusių užklausų < 0,1 % | 1 iš 1 386 ir 0 iš 1 463 (be `preStop` 28 iš 1 827) |
 | NFR-21 | Saugumas | MLflow prieiga tik su prisijungimu | anoniminis API kvietimas 401; `viewer` rašymas ir `serving` alias'o keitimas 403 | 401 / 403 / 403 |
-| NFR-22 | Kokybė | CI sustabdo blogą modelį ir trunka trumpai | žalias workflow ≤ 15 min; su `min_f1=0.99` `model-gate` krenta, `build` nevykdomas ir vaizdai nepublikuojami | žalias run'as `43011607138`: 7 min 39 s, abu vaizdai GHCR; raudonas run'as `43013796244`: `model-gate` krito, `build` nevykdytas |
+| NFR-22 | Kokybė | CI sustabdo blogą modelį ir trunka trumpai | žalias workflow ≤ 15 min; su `min_f1=0.99` `model-gate` krenta, `build` nevykdomas ir vaizdai nepublikuojami | žalias run'as `43011607138`: 7 min 39 s, abu vaizdai GHCR; raudonas run'as `43013796244`: `model-gate` krito, `build` nevykdytas; su `deploy=true` žalias `43086372854` (`deploy` 19 s) ir raudonas `43087804813` (`build` ir `deploy` nevykdyti) |
 | NFR-23 | Našumas | AMP pagreitina GPU mokymą, kai kamštis yra GPU | ≥ 2 kartai tinklui 4096 su batch 8192 (MLflow metrika `train_seconds`) | 2,45 karto (48,3 → 19,7 s, run'ai `74b6b6ba`, `2ca39cdc`); mažam tinklui (GPU apkrova 34 %) AMP 1,3 karto lėtesnis (26,7 → 34,6 s) |
 
 Nutekėjimas tarp imčių įvyko v1.2: atsitiktinis padalijimas paliko 6 321 bendrą vietą, ir gylio 15 F1 0,7197 buvo išpūstas; v1.3 ištaisyta padalijimu pagal vietą (NFR-01a). Lieka to paties šeimininko skelbimai skirtingose vietose, nes šeimininko ID nėra.
