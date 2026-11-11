@@ -83,11 +83,10 @@ curl -fsSL --create-dirs -o "data/raw/#1_#2.csv" \
 dvc commit -f data/raw.dvc
 ```
 
-> [!TIP]
-> Komanda patikrinti, jog duomenys yra byte-identical. Sėkmingu atveju atprintinama į terminalą: "duomenys sutampa".
-> ```sh
-> git diff --exit-code data/raw.dvc && echo "duomenys sutampa"
-> ```
+Komanda patikrinti, jog duomenys yra byte-identical. Sėkmingu atveju atprintinama į terminalą: "duomenys sutampa".
+```sh
+git diff --exit-code data/raw.dvc && echo "duomenys sutampa"
+```
 
 ### 3. Klasteris, MLflow ir prisijungimai
 
@@ -114,9 +113,6 @@ kubectl apply -f k8s/mlflow/
 kubectl -n mlops-u1 rollout status deploy/mlflow --timeout=300s
 curl -sf http://127.0.0.1:5000/health; echo
 ```
-
-> [!TIP]
-> MLflow pasiekiamas jau po šio etapo `http://127.0.0.1:5000`
 
 Kiti useriai
 - `trainer` (run'ų loginimui ir t.t.)
@@ -149,20 +145,18 @@ dvc repro && git commit -am "HPO run"
 
 ### 5. Rezultatų tikrinimas
 
-> [!TIP]
-> MLflow UI (http://127.0.0.1:5000) prašo prisijungimo: naudotojas `viewer`, slaptažodį išveda žemiau esanti komanda.
-> ```sh
-> kubectl -n mlops-u1 get secret mlflow-viewer-credentials -o jsonpath='{.data.MLFLOW_TRACKING_PASSWORD}' | base64 -d; echo
-> ```
+MLflow UI (http://127.0.0.1:5000) prašo prisijungimo: naudotojas `viewer`, slaptažodį išveda žemiau esanti komanda.
+```sh
+kubectl -n mlops-u1 get secret mlflow-viewer-credentials -o jsonpath='{.data.MLFLOW_TRACKING_PASSWORD}' | base64 -d; echo
+```
 
-> [!TIP]
-> Per CLI galima matyti metrikas ir palyginti su ankstesnėmis:
-> ```sh
-> dvc metrics show
->
-> dvc metrics diff <commit>
-> dvc params diff <commit>
-> ```
+Per CLI galima matyti metrikas ir palyginti su ankstesnėmis:
+```sh
+dvc metrics show
+
+dvc metrics diff <commit>
+dvc params diff <commit>
+```
 
 
 Žemiau esanti komanda turi išvesti `0`:
@@ -175,11 +169,10 @@ print(len(set(zip(train.lat, train.lng)) & set(zip(test.lat, test.lng))))"
 
 ### 6. Istorinio run'o reprodukcija
 
+`run_id` galima susirasti per MLflow.
 ```sh
 time python reproduce.py <run_id>
 ```
-> [!TIP]
-> `run_id` galima susirasti per MLflow
 
 
 ### 7. Docker vaizdai: build, Trivy ir kind
@@ -274,7 +267,7 @@ time bash scripts/ci-cd.sh rollback
 ```
 
 ### 12. CI workflow (Paleidimai)
-- Žalias paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43011607138>
+- Žalias paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43080857023>
 - Raudonas paleidimas: <https://github.com/lukasja111/mlops-u1/actions/runs/43013796244>
 
 `.github/workflows/ci-cd.yml` pasileidžia GitHub Actions po pusho į main.
@@ -284,9 +277,6 @@ Raudonas paleidimas:
 ```sh
 gh workflow run ci-cd.yml -f min_f1=0.99
 ```
-
-> [!TIP]
-> Rankiniam paleidimui reikia `gh` prisijungimo su rašymo teise į repozitoriją tai parequestinkit arba ne kzn.
 
 ### 13. GPU mokymas (E1)
 
@@ -320,9 +310,6 @@ Klusterio šalinimas
 ```sh
 kind delete cluster --name mlops-u1
 ```
-
-> [!TIP]
-> Po kompiuterio perkrovimo klasterio trinti nereikia, jį pakelia `docker start mlops-u1-control-plane`.
 
 
 ## Duomenys ir licencija

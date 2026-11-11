@@ -17,6 +17,10 @@ on:
       min_f1:
         description: Gate threshold for F1, empty keeps params.yaml (0.99 gives a red run)
         type: number
+      deploy:
+        description: Deploy with scripts/ci-cd.sh on the self-hosted runner after the build
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -127,3 +131,18 @@ jobs:
             docker tag "mlops-u1/$image:$TAG" "ghcr.io/$GITHUB_REPOSITORY/$image:$TAG"
             docker push "ghcr.io/$GITHUB_REPOSITORY/$image:$TAG"
           done
+
+  deploy:
+    needs: build
+    if: inputs.deploy
+    runs-on: self-hosted
+    steps:
+      - name: Deploy with scripts/ci-cd.sh
+        run: |
+          cd "${MLOPS_REPO:?set MLOPS_REPO where the runner starts}"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          export MLFLOW_TRACKING_URI=http://127.0.0.1:5000 MLFLOW_TRACKING_USERNAME=trainer
+          MLFLOW_TRACKING_PASSWORD=$(kubectl -n mlops-u1 get secret mlflow-trainer-credentials -o jsonpath='{.data.MLFLOW_TRACKING_PASSWORD}' | base64 -d)
+          echo "::add-mask::$MLFLOW_TRACKING_PASSWORD"
+          export MLFLOW_TRACKING_PASSWORD
+          bash scripts/ci-cd.sh
