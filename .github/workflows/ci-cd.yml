@@ -13,6 +13,10 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      min_f1:
+        description: Gate threshold for F1, empty keeps params.yaml (0.99 gives a red run)
+        type: number
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -67,7 +71,11 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
       - name: Quality gate
-        run: python scripts/gate.py
+        env:
+          MIN_F1: ${{ inputs.min_f1 }}
+        run: |
+          if [ -n "$MIN_F1" ]; then sed -i "s/min_f1: .*/min_f1: $MIN_F1/" params.yaml; fi
+          python scripts/gate.py
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: processed
